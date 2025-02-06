@@ -1,0 +1,86 @@
+{
+    "system": {
+        "startup": [
+            "System is starting up...",
+            "Welcome! System is preparing...",
+            "AI Assistant is initializing..."
+        ],
+        "ready": [
+            "Ready! How can I help you?",
+            "System is ready, waiting for your commands.",
+            "I'm listening!"
+        ],
+        "shutdown": [
+            "System is shutting down...",
+            "See you later!",
+            "Goodbye!"
+        ]
+    },
+    "errors": {
+        "speech_recognition": [
+            "Sorry, I couldn't understand you.",
+            "I didn't catch that.",
+            "Could you please repeat?"
+        ],
+        "command_not_found": [
+            "I don't recognize this command.",
+            "Command not found.",
+            "I can't perform this action."
+        ],
+        "system_error": [
+            "A system error occurred.",
+            "An error occurred during operation.",
+            "Technical problem encountered."
+        ]
+    },
+    "feedback": {
+        "success": [
+            "Operation completed!",
+            "Done!",
+            "Ready!"
+        ],
+        "working": [
+            "Working on it...",
+            "Operation in progress...",
+            "Just a moment please..."
+        ],
+        "confirmation": [
+            "Are you sure you want to do this?",
+            "Do you confirm?",
+            "Should I proceed?"
+        ]
+    },
+    "commands": {
+        "volume": {
+            "up": "Volume increased: %{level}",
+            "down": "Volume decreased: %{level}",
+            "mute": "Volume muted",
+            "unmute": "Volume unmuted"
+        },
+        "brightness": {
+            "up": "Brightness increased: %{level}",
+            "down": "Brightness decreased: %{level}"
+        },
+        "system": {
+            "sleep": "System is going to sleep...",
+            "shutdown": "System is shutting down...",
+            "restart": "System is restarting..."
+        }
+    },
+    "welcome": [
+        "Hello! How can I help you?",
+        "Welcome! What would you like to do?",
+        "I'm listening!"
+    ],
+    "error": "An error occurred while performing this action: {error}\nWould you like to see the error details?",
+    "error_shown": "Error details opened in VS Code.",
+    "error_hidden": "Error details hidden.",
+    "task_added": "✅ New task added: {title} (ID: {id})",
+    "task_updated": "✅ Task status updated: {title} → {status}",
+    "todo_added": "✅ TODO note added: {message}",
+    "reminder_added": "✅ Reminder set: {message} ({time})",
+    "command_not_understood": "Sorry, I didn't understand that command.",
+    "processing": "Processing your request...",
+    "success": "✅ Operation completed successfully!",
+    "failure": "❌ Operation failed: {reason}"
+} 

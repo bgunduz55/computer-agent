@@ -1,0 +1,109 @@
+{
+    "welcome": [
+        "Merhaba! Size nasıl yardımcı olabilirim?",
+        "Hoş geldiniz! Ne yapmak istersiniz?",
+        "Buyrun, sizi dinliyorum!"
+    ],
+    "error": "Bu işlemi yaparken bir hata oluştu: {error}\nHata detaylarını görmek ister misiniz?",
+    "error_shown": "Hata detayları VS Code'da açıldı.",
+    "error_hidden": "Hata detayları gizlendi.",
+    "error_dialog_title": "Hata",
+    "yes": "Evet",
+    "no": "Hayır",
+    "task_added": "✅ Yeni görev eklendi: {title} (ID: {id})",
+    "task_updated": "✅ Görev durumu güncellendi: {title} → {status}",
+    "todo_added": "✅ TODO notu eklendi: {message}",
+    "reminder_added": "✅ Hatırlatıcı ayarlandı: {message} ({time})",
+    "command_not_understood": "Üzgünüm, bu komutu anlayamadım.",
+    "processing": "İsteğiniz işleniyor...",
+    "success": "✅ İşlem başarıyla tamamlandı!",
+    "failure": "❌ İşlem başarısız: {reason}",
+    "button_start": "Başlat",
+    "button_stop": "Durdur",
+    "language_changed": "Dil değiştirildi: {language}",
+    "closing": "Uygulama kapatılıyor. Görüşmek üzere! 👋",
+    "confirm_close": "Uygulamayı kapatmak istediğinize emin misiniz?",
+    "confirm_close_title": "Kapatma Onayı",
+    "confirm_dialog_title": "Onay",
+    "crash_report": "Kritik bir hata oluştu. Hata raporu kaydedildi.",
+    "error_logged": "Hata kaydedildi. Hata ID: {error_id}",
+    "show_error_log": "Son hataları görmek için 'hataları göster' komutunu kullanabilirsiniz.",
+    "critical_error": "❌ Kritik Hata: {error}\nLütfen uygulamayı yeniden başlatın.",
+    "error_details": "Hata Detayları:\nTip: {type}\nMesaj: {message}\nKomut: {command}",
+    "confirm_close_app": "{app} uygulamasını kapatmak istediğinize emin misiniz?",
+    "operation_cancelled": "❌ İşlem iptal edildi",
+    "app_not_supported": "❌ Bu uygulama desteklenmiyor: {app}",
+    "app_closed": "✅ {app} kapatıldı",
+    "app_not_found": "❌ {app} uygulaması bulunamadı",
+    "listening_started": "Aktif dinleme moduna geçildi, komutlarınızı bekliyorum.",
+    "listening_paused": "Dinleme duraklatıldı. Tekrar başlatmak için beni çağırabilirsiniz.",
+    "goodbye": "Görüşmek üzere! 👋",
+    "system": {
+        "startup": [
+            "Sistem başlatılıyor...",
+            "Hoş geldiniz! Sistem hazırlanıyor...",
+            "AI Asistan başlatılıyor..."
+        ],
+        "ready": [
+            "Hazırım! Size nasıl yardımcı olabilirim?",
+            "Sistem hazır, komutlarınızı bekliyorum.",
+            "Dinlemeye hazırım!"
+        ],
+        "shutdown": [
+            "Sistem kapatılıyor...",
+            "Görüşmek üzere!",
+            "Hoşça kalın!"
+        ]
+    },
+    "errors": {
+        "speech_recognition": [
+            "Üzgünüm, sizi anlayamadım.",
+            "Ne dediğinizi duyamadım.",
+            "Lütfen tekrar eder misiniz?"
+        ],
+        "command_not_found": [
+            "Bu komutu tanımıyorum.",
+            "Böyle bir komut bulamadım.",
+            "Bu işlemi yapamıyorum."
+        ],
+        "system_error": [
+            "Bir sistem hatası oluştu.",
+            "İşlem sırasında hata oluştu.",
+            "Teknik bir sorun yaşandı."
+        ]
+    },
+    "feedback": {
+        "success": [
+            "İşlem tamamlandı!",
+            "Hazır!",
+            "Tamam!"
+        ],
+        "working": [
+            "Üzerinde çalışıyorum...",
+            "İşlem devam ediyor...",
+            "Bir saniye lütfen..."
+        ],
+        "confirmation": [
+            "Bu işlemi yapmak istediğinizden emin misiniz?",
+            "Onaylıyor musunuz?",
+            "Devam edilsin mi?"
+        ]
+    },
+    "commands": {
+        "volume": {
+            "up": "Ses seviyesi artırıldı: %{level}",
+            "down": "Ses seviyesi azaltıldı: %{level}",
+            "mute": "Ses kapatıldı",
+            "unmute": "Ses açıldı"
+        },
+        "brightness": {
+            "up": "Parlaklık artırıldı: %{level}",
+            "down": "Parlaklık azaltıldı: %{level}"
+        },
+        "system": {
+            "sleep": "Sistem uyku moduna alınıyor...",
+            "shutdown": "Sistem kapatılıyor...",
+            "restart": "Sistem yeniden başlatılıyor..."
+        }
+    }
+} 

@@ -1,0 +1,169 @@
+{
+    "window_management": {
+        "layouts": {
+            "coding": {
+                "monitor1": {
+                    "main": {
+                        "app": "cursor",
+                        "position": "left"
+                    },
+                    "terminal": {
+                        "app": "windowsterminal",
+                        "position": "right"
+                    }
+                }
+            },
+            "browsing": {
+                "monitor1": {
+                    "browser": {
+                        "app": "brave",
+                        "position": "maximized"
+                    }
+                }
+            }
+        }
+    },
+    "ai": {
+        "default_model": "qwen2.5-coder:7b",
+        "models": {
+            "qwen2.5-coder:7b": {
+                "temperature": 0.7,
+
+                "max_tokens": 4096,
+                "context_window": 4096,
+
+                "system_prompt": "Sen yapay zeka destekli bir bilgisayar asistanısın. Kullanıcının sesli komutlarını anlayarak çeşitli görevleri yerine getirebilirsin:\n1. Sistem kontrolü ve yönetimi\n2. Uygulama ve pencere yönetimi\n3. Medya kontrolü ve ses ayarları\n4. Görev planlaması ve hatırlatıcılar\n5. Kod geliştirme ve düzenleme\n\nKullanıcıyla doğal ve yardımsever bir şekilde iletişim kur, işlemleri sesli olarak bildir."
+            },
+            "deepseek-r1:7b": {
+                "temperature": 0.8,
+                "max_tokens": 2048,
+                "context_window": 2048
+            }
+        }
+    },
+    "language": {
+        "default": "tr",
+        "available": ["tr", "en", "es", "fr", "de"]
+    },
+    "speech": {
+        "recognition": {
+            "engine": "google",
+            "language": "tr-TR",
+            "timeout": 5
+        },
+        "synthesis": {
+            "engine": "sapi5",
+            "voice": "tr",
+            "rate": 175,
+            "volume": 0.8,
+            "buffer_size": 4096,
+            "optimize_memory": true
+        }
+    },
+    "system": {
+        "volume_step": 10,
+        "brightness_step": 10,
+        "screenshot_dir": "screenshots",
+        "log_dir": "data/logs",
+        "default_apps": {
+            "browser": "brave",
+            "editor": "cursor",
+            "terminal": "windowsterminal"
+        },
+
+        "keyboard_shortcuts": {
+            "screenshot": "win+shift+s",
+            "terminal": "ctrl+alt+t",
+            "browser": "ctrl+alt+b"
+        }
+    },
+    "automation": {
+        "schedules": {
+            "backup": {
+                "time": "03:00",
+                "action": "backup",
+                "params": {
+                    "source": "data/",
+                    "destination": "backups/"
+                }
+            },
+            "cleanup": {
+                "time": "04:00",
+                "action": "clear_temp_files"
+            }
+        },
+        "triggers": {
+            "low_battery": {
+                "condition": "battery_level < 20",
+                "action": "enable_power_save"
+            },
+            "high_cpu": {
+                "condition": "cpu_usage > 80",
+                "action": "notify_user",
+                "params": {
+                    "message": "Yüksek CPU kullanımı!"
+                }
+            }
+        }
+    },
+    "notifications": {
+        "voice_feedback": true,
+        "max_history": 100,
+        "default_timeout": 10
+    },
+    "security": {
+        "voice_recognition": {
+            "confidence_threshold": 0.8,
+            "allowed_commands": ["media", "window", "system", "all"]
+        },
+        "data_privacy": {
+            "auto_clear_temp": true,
+            "encryption_enabled": true
+        }
+    },
+    "performance": {
+        "monitoring": {
+            "enabled": true,
+            "metrics": ["cpu", "memory", "response_time"]
+        },
+        "optimization": {
+            "auto_cache_clear": true,
+            "model_switching": true,
+            "resource_limits": {
+                "max_memory": "2GB",
+                "max_cpu": "80%"
+            }
+        }
+    },
+    "interface": {
+        "theme": "dark",
+        "font_size": 12,
+        "window_size": {
+            "width": 1280,
+            "height": 720
+        },
+        "opacity": 0.95
+    },
+    "commands": {
+        "triggers": {
+            "wake_word": ["hey alimer", "hey asistan", "merhaba asistan"],
+            "pause_word": ["dur", "bekle", "durdur", "kapat"],
+            "confirm_word": ["evet", "tamam", "onaylıyorum"],
+            "cancel_word": ["hayır", "iptal", "vazgeç"]
+        },
+        "actions": {
+            "development": ["geliştir", "ekle", "yaz", "oluştur", "düzenle"],
+            "review": ["incele", "kontrol et", "review", "gözden geçir"],
+            "system": ["sistem", "bilgisayar", "pc"],
+            "media": ["ses", "müzik", "video", "medya"],
+            "window": ["pencere", "uygulama", "program"]
+        },
+        "shortcuts": {
+            "save": "kaydet",
+            "close": "kapat",
+            "switch": "geçiş yap",
+            "maximize": "büyüt",
+            "minimize": "küçült"
+        }
+    }
+} 

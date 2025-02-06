@@ -1,0 +1,21 @@
+{
+    "welcome": [
+        "¡Hola! ¿En qué puedo ayudarte?",
+        "¡Bienvenido! ¿Qué te gustaría hacer?",
+        "¡Te escucho!"
+    ],
+    "error": "Ocurrió un error al realizar esta acción: {error}\n¿Te gustaría ver los detalles del error?",
+    "error_shown": "Detalles del error abiertos en VS Code.",
+    "error_hidden": "Detalles del error ocultos.",
+    "task_added": "✅ Nueva tarea añadida: {title} (ID: {id})",
+    "task_updated": "✅ Estado de tarea actualizado: {title} → {status}",
+    "todo_added": "✅ Nota TODO añadida: {message}",
+    "reminder_added": "✅ Recordatorio establecido: {message} ({time})",
+    "command_not_understood": "Lo siento, no entendí ese comando.",
+    "processing": "Procesando su solicitud...",
+    "success": "✅ ¡Operación completada con éxito!",
+    "failure": "❌ La operación falló: {reason}",
+    "button_start": "Iniciar",
+    "button_stop": "Detener",
+    "language_changed": "Idioma cambiado a: {language}"
+} 

@@ -1,0 +1,3 @@
+.env
+data/logs/voice.log
+data/debug.log
