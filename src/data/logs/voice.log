@@ -1,0 +1,21 @@
+2025-02-07 16:46:08,876 - AICodeEditor.Config - WARNING - Şema dosyası bulunamadı
+2025-02-07 16:46:08,876 - AICodeEditor.Config - WARNING - Varsayılan yapılandırma dosyası bulunamadı
+2025-02-07 16:46:08,877 - AICodeEditor.Config - INFO - Kullanıcı yapılandırma şablonu oluşturuldu
+2025-02-07 16:46:08,907 - AICodeEditor - ERROR - Uncaught Exception:
+Type: KeyError
+Message: 'ai'
+Traceback:
+  File "C:\Users\bgund\OneDrive\Belgeler\Projects\Vscode-Extensions\computer-assistant\src\main.py", line 12, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\bgund\OneDrive\Belgeler\Projects\Vscode-Extensions\computer-assistant\src\gui.py", line 355, in main
+    window = AICodeEditorGUI()
+  File "C:\Users\bgund\OneDrive\Belgeler\Projects\Vscode-Extensions\computer-assistant\src\gui.py", line 62, in __init__
+    self.agent = CodeEditorAgent()
+                 ~~~~~~~~~~~~~~~^^
+  File "C:\Users\bgund\OneDrive\Belgeler\Projects\Vscode-Extensions\computer-assistant\src\code_agent.py", line 66, in __init__
+    model_config = self.config_manager.get_model_config()
+  File "C:\Users\bgund\OneDrive\Belgeler\Projects\Vscode-Extensions\computer-assistant\src\config_manager.py", line 231, in get_model_config
+    model_name = self.config["ai"]["default_model"]
+                 ~~~~~~~~~~~^^^^^^
+

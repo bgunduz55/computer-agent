@@ -1,0 +1,16 @@
+{
+    "interface": {
+        "theme": "dark",
+        "font_size": 12
+    },
+    "speech": {
+        "synthesis": {
+            "rate": 150,
+            "volume": 0.9
+        }
+    },
+    "system": {
+        "volume_step": 10,
+        "brightness_step": 10
+    }
+}

@@ -1,0 +1,23 @@
+2025-02-07 16:46:08,876 - AICodeEditor.Config - WARNING - \u015eema dosyas\u0131 bulunamad\u0131
+2025-02-07 16:46:08,876 - AICodeEditor.Config - WARNING - Varsay\u0131lan yap\u0131land\u0131rma dosyas\u0131 bulunamad\u0131
+2025-02-07 16:46:08,877 - AICodeEditor.Config - INFO - Kullan\u0131c\u0131 yap\u0131land\u0131rma \u015fablonu olu\u015fturuldu
+2025-02-07 16:46:08,907 - AICodeEditor - ERROR - Uncaught Exception:
+Type: KeyError
+Message: 'ai'
+Traceback:
+  File "C:\Users\bgund\OneDrive\Belgeler\Projects\Vscode-Extensions\computer-assistant\src\main.py", line 12, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\bgund\OneDrive\Belgeler\Projects\Vscode-Extensions\computer-assistant\src\gui.py", line 355, in main
+    window = AICodeEditorGUI()
+  File "C:\Users\bgund\OneDrive\Belgeler\Projects\Vscode-Extensions\computer-assistant\src\gui.py", line 62, in __init__
+    self.agent = CodeEditorAgent()
+                 ~~~~~~~~~~~~~~~^^
+  File "C:\Users\bgund\OneDrive\Belgeler\Projects\Vscode-Extensions\computer-assistant\src\code_agent.py", line 66, in __init__
+    model_config = self.config_manager.get_model_config()
+  File "C:\Users\bgund\OneDrive\Belgeler\Projects\Vscode-Extensions\computer-assistant\src\config_manager.py", line 231, in get_model_config
+    model_name = self.config["ai"]["default_model"]
+                 ~~~~~~~~~~~^^^^^^
+
+2025-02-07 16:46:08,909 - comtypes._post_coinit.unknwn - DEBUG - Calling CoUninitialize()
+2025-02-07 16:46:08,909 - comtypes._post_coinit.unknwn - DEBUG - CoUninitialize() done.
