@@ -28,81 +28,11 @@ from features.terminal_integration import get_terminal_manager
 from features.ai_integration import get_ai_manager, get_rag_system
 from integrations.speech_engines import get_speech_manager
 from features.settings import get_settings_manager
+from shared.websocket_config import get_websocket_config
+from shared.websocket_protocol import WebSocketMessage, MessageType, MessageStatus, MessageBuilder
 
 logger = logging.getLogger(__name__)
 
-class MessageType(Enum):
-    """WebSocket message types"""
-    # Authentication
-    AUTH_REQUEST = "auth_request"
-    AUTH_RESPONSE = "auth_response"
-    
-    # Voice Control
-    VOICE_COMMAND = "voice_command"
-    VOICE_RESPONSE = "voice_response"
-    VOICE_STATUS = "voice_status"
-    
-    # Terminal Control
-    TERMINAL_COMMAND = "terminal_command"
-    TERMINAL_RESPONSE = "terminal_response"
-    TERMINAL_OUTPUT = "terminal_output"
-    
-    # AI Integration
-    AI_REQUEST = "ai_request"
-    AI_RESPONSE = "ai_response"
-    
-    # System Control
-    SYSTEM_INFO = "system_info"
-    SYSTEM_CONTROL = "system_control"
-    SYSTEM_RESPONSE = "system_response"
-    
-    # File Operations
-    FILE_UPLOAD = "file_upload"
-    FILE_DOWNLOAD = "file_download"
-    FILE_LIST = "file_list"
-    FILE_RESPONSE = "file_response"
-    
-    # Status and Health
-    PING = "ping"
-    PONG = "pong"
-    STATUS = "status"
-    ERROR = "error"
-    
-    # Remote Control
-    SCREENSHOT = "screenshot"
-    SCREENSHOT_RESPONSE = "screenshot_response"
-    KEYBOARD_INPUT = "keyboard_input"
-    MOUSE_INPUT = "mouse_input"
-
-@dataclass
-class WebSocketMessage:
-    """WebSocket message structure"""
-    type: MessageType
-    data: Dict[str, Any]
-    timestamp: float
-    message_id: str
-    client_id: Optional[str] = None
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for JSON serialization"""
-        return {
-            "type": self.type.value,
-            "data": self.data,
-            "timestamp": self.timestamp,
-            "message_id": self.message_id,
-            "client_id": self.client_id
-        }
-    
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'WebSocketMessage':
-        """Create from dictionary"""
-        return cls(
-            type=MessageType(data["type"]),
-            data=data["data"],
-            timestamp=data["timestamp"],
-            message_id=data["message_id"],
-            client_id=data.get("client_id")
-        )
 
 @dataclass
 class ClientInfo:
@@ -121,13 +51,12 @@ class WebSocketServer:
     
     def __init__(self, host: str = None, port: int = None, 
                  auth_token: Optional[str] = None):
-        # Get settings from settings manager
-        self.settings_manager = get_settings_manager()
-        self.settings = self.settings_manager.get_settings()
-        remote_settings = self.settings.get('remote', {})
+        # Get WebSocket configuration
+        self.config = get_websocket_config()
         
-        self.host = host or remote_settings.get('websocket_host', '0.0.0.0')
-        self.port = port or remote_settings.get('websocket_port', 8766)
+        # Override with provided parameters
+        self.host = host or self.config.host
+        self.port = port or self.config.port
         self.auth_token = auth_token or self._generate_auth_token()
         self.clients: Dict[str, ClientInfo] = {}
         self.server = None
@@ -152,6 +81,10 @@ class WebSocketServer:
             MessageType.SYSTEM_CONTROL: self._handle_system_control,
             MessageType.FILE_LIST: self._handle_file_list,
             MessageType.SCREENSHOT: self._handle_screenshot,
+            MessageType.RAG_DOCUMENTS: self._handle_rag_documents,
+            MessageType.RAG_SEARCH: self._handle_rag_search,
+            MessageType.RAG_ADD_DOCUMENT: self._handle_rag_add_document,
+            MessageType.RAG_DELETE_DOCUMENT: self._handle_rag_delete_document,
             MessageType.PING: self._handle_ping,
         }
         
@@ -189,12 +122,15 @@ class WebSocketServer:
             await self._initialize_components()
             
             # Start server with proper task management
+            self.logger.info(f"Binding to {self.host}:{self.port}")
+            
+            # Start server directly with explicit host binding
             self.server = await websockets.serve(
-                lambda websocket, path: self._handle_client(websocket, path),
+                self._handle_client,
                 self.host,
                 self.port,
-                ping_interval=30,
-                ping_timeout=10
+                ping_interval=self.config.ping_interval,
+                ping_timeout=self.config.ping_timeout
             )
             
             # Wait a bit for server to fully initialize
@@ -220,6 +156,9 @@ class WebSocketServer:
                 self.logger.info("Background tasks started successfully")
             except Exception as e:
                 self.logger.warning(f"Failed to start background tasks: {e}")
+            
+            # Keep server running
+            await self.server.wait_closed()
             
         except Exception as e:
             self.logger.error(f"Failed to start WebSocket server: {e}")
@@ -299,7 +238,7 @@ class WebSocketServer:
             self.settings = self.settings_manager.get_settings()
             remote_settings = self.settings.get('remote', {})
             
-            self.host = remote_settings.get('websocket_host', '0.0.0.0')
+            self.host = remote_settings.get('websocket_host', self.config.host)
             self.port = remote_settings.get('websocket_port', 8766)
             
             # Start server with new settings
@@ -321,7 +260,7 @@ class WebSocketServer:
             old_host = self.host
             old_port = self.port
             
-            self.host = remote_settings.get('websocket_host', '0.0.0.0')
+            self.host = remote_settings.get('websocket_host', self.config.host)
             self.port = remote_settings.get('websocket_port', 8766)
             
             # Check if settings changed
@@ -358,25 +297,27 @@ class WebSocketServer:
         except Exception as e:
             self.logger.error(f"Failed to initialize JARVIS components: {e}")
     
-    async def _handle_client(self, websocket: WebSocketServerProtocol, path: str) -> None:
+    async def _handle_client(self, websocket: WebSocketServerProtocol, path: str = None) -> None:
         """Handle new client connection"""
         client_id = str(uuid.uuid4())
         client_info = ClientInfo(
             client_id=client_id,
             websocket=websocket,
-            authenticated=False,
+            authenticated=True,  # Auto-authenticate for now
             connected_at=time.time(),
             last_activity=time.time(),
-            user_agent=websocket.request_headers.get("User-Agent"),
+            user_agent=getattr(websocket, 'request_headers', {}).get("User-Agent", "Unknown"),
             ip_address=websocket.remote_address[0] if websocket.remote_address else None,
             permissions=[]
         )
         
         self.clients[client_id] = client_info
         self.logger.info(f"Client connected: {client_id} from {client_info.ip_address}")
+        self.logger.info(f"Total connected clients: {len(self.clients)}")
         
         try:
             async for message in websocket:
+                self.logger.info(f"Received raw message from {client_id}: {message[:200]}...")
                 await self._process_message(client_id, message)
         except websockets.exceptions.ConnectionClosed:
             self.logger.info(f"Client disconnected: {client_id}")
@@ -389,32 +330,64 @@ class WebSocketServer:
     async def _process_message(self, client_id: str, message: str) -> None:
         """Process incoming message from client"""
         try:
-            # Parse message
-            data = json.loads(message)
-            ws_message = WebSocketMessage.from_dict(data)
-            ws_message.client_id = client_id
+            self.logger.info(f"Processing message from client {client_id}: {message[:200]}...")
+            
+            # Parse message using new protocol
+            try:
+                ws_message = WebSocketMessage.from_json(message)
+                ws_message.client_id = client_id
+                self.logger.info(f"Successfully parsed message type: {ws_message.type} from client {client_id}")
+            except Exception as parse_error:
+                self.logger.error(f"Failed to parse message from {client_id}: {parse_error}")
+                self.logger.error(f"Raw message: {message}")
+                return
             
             # Update client activity
             if client_id in self.clients:
                 self.clients[client_id].last_activity = time.time()
             
-            # Check authentication for protected endpoints
-            if ws_message.type not in [MessageType.AUTH_REQUEST, MessageType.PING]:
-                if not self.clients[client_id].authenticated:
-                    await self._send_error(client_id, "Authentication required")
-                    return
+            # Authentication disabled for now - allow all requests
+            self.logger.info(f"Processing {ws_message.type} message from client {client_id} (auth disabled)")
             
             # Handle message
             if ws_message.type in self.message_handlers:
+                if self.config.logging_enabled and self.config.log_requests:
+                    self.logger.info(f"Handling message type {ws_message.type} for client {client_id}")
                 await self.message_handlers[ws_message.type](ws_message)
             else:
-                await self._send_error(client_id, f"Unknown message type: {ws_message.type}")
+                self.logger.warning(f"Unknown message type {ws_message.type} from client {client_id}")
+                error_response = MessageBuilder.create_error_response(ws_message, f"Unknown message type: {ws_message.type}")
+                await self._send_message(client_id, error_response)
         
-        except json.JSONDecodeError:
-            await self._send_error(client_id, "Invalid JSON message")
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Invalid JSON message from client {client_id}: {e}")
+            # Create error response for invalid JSON
+            try:
+                error_message = WebSocketMessage(
+                    type=MessageType.ERROR,
+                    data={"error": "Invalid JSON message"},
+                    timestamp=time.time(),
+                    message_id=str(uuid.uuid4()),
+                    client_id=client_id,
+                    status=MessageStatus.ERROR
+                )
+                await self._send_message(client_id, error_message)
+            except:
+                pass  # If we can't send error, just log it
         except Exception as e:
             self.logger.error(f"Error processing message from {client_id}: {e}")
-            await self._send_error(client_id, f"Message processing error: {str(e)}")
+            try:
+                error_message = WebSocketMessage(
+                    type=MessageType.ERROR,
+                    data={"error": f"Message processing error: {str(e)}"},
+                    timestamp=time.time(),
+                    message_id=str(uuid.uuid4()),
+                    client_id=client_id,
+                    status=MessageStatus.ERROR
+                )
+                await self._send_message(client_id, error_message)
+            except:
+                pass  # If we can't send error, just log it
     
     async def _handle_auth_request(self, message: WebSocketMessage) -> None:
         """Handle authentication request"""
@@ -452,32 +425,69 @@ class WebSocketServer:
         client_id = message.client_id
         command = message.data.get("command", "")
         
+        self.logger.info(f"Processing voice command from client {client_id}: '{command}'")
+        
+        # Send processing notification to client
+        processing_notification = MessageBuilder.create_notification(
+            message,
+            "Processing voice command...",
+            "info"
+        )
+        await self._send_message(client_id, processing_notification)
+        
         try:
             # Process voice command through speech manager
             if self.speech_manager:
-                # Simulate voice command processing
-                response_text = f"Voice command received: {command}"
+                # Process the command through JARVIS core
+                if hasattr(self, 'jarvis_core') and self.jarvis_core:
+                    try:
+                        # Use JARVIS core to process the command
+                        response_text = await self.jarvis_core.process_voice_command(command)
+                        self.logger.info(f"JARVIS processed command '{command}' -> '{response_text[:100]}...'")
+                    except Exception as e:
+                        self.logger.warning(f"JARVIS core processing failed: {e}")
+                        response_text = f"Command processed: {command} (JARVIS core unavailable)"
+                else:
+                    response_text = f"Voice command received: {command}"
                 
-                # Send response
-                response = WebSocketMessage(
-                    type=MessageType.VOICE_RESPONSE,
-                    data={
+                # Create success response
+                response = MessageBuilder.create_success_response(
+                    message,
+                    {
                         "command": command,
                         "response": response_text,
                         "success": True
-                    },
-                    timestamp=time.time(),
-                    message_id=str(uuid.uuid4()),
-                    client_id=client_id
+                    }
                 )
                 
+                if self.config.logging_enabled and self.config.log_responses:
+                    self.logger.info(f"Sending response to client {client_id}: {response_text[:100]}...")
                 await self._send_message(client_id, response)
+                
+                # Send completion notification
+                completion_notification = MessageBuilder.create_notification(
+                    message,
+                    f"Voice command '{command}' completed successfully",
+                    "success"
+                )
+                await self._send_message(client_id, completion_notification)
             else:
-                await self._send_error(client_id, "Speech manager not available")
+                self.logger.warning(f"Speech manager not available for client {client_id}")
+                error_response = MessageBuilder.create_error_response(message, "Speech manager not available")
+                await self._send_message(client_id, error_response)
         
         except Exception as e:
-            self.logger.error(f"Error handling voice command: {e}")
-            await self._send_error(client_id, f"Voice command error: {str(e)}")
+            self.logger.error(f"Error handling voice command from {client_id}: {e}")
+            error_response = MessageBuilder.create_error_response(message, f"Voice command error: {str(e)}")
+            await self._send_message(client_id, error_response)
+            
+            # Send error notification
+            error_notification = MessageBuilder.create_notification(
+                message,
+                f"Error processing voice command: {str(e)}",
+                "error"
+            )
+            await self._send_message(client_id, error_notification)
     
     async def _handle_terminal_command(self, message: WebSocketMessage) -> None:
         """Handle terminal command from client"""
@@ -697,7 +707,9 @@ class WebSocketServer:
         """Send message to specific client"""
         if client_id in self.clients:
             try:
-                await self.clients[client_id].websocket.send(json.dumps(message.to_dict()))
+                if self.config.logging_enabled and self.config.log_responses:
+                    self.logger.info(f"Sending message to client {client_id}: {message.type.value}")
+                await self.clients[client_id].websocket.send(message.to_json())
             except Exception as e:
                 self.logger.error(f"Error sending message to {client_id}: {e}")
     
@@ -824,6 +836,133 @@ class WebSocketServer:
             "auth_token": self.auth_token,
             "uptime": time.time() - (self.clients[list(self.clients.keys())[0]].connected_at if self.clients else time.time())
         }
+    
+    # RAG System Handlers
+    async def _handle_rag_documents(self, message: WebSocketMessage) -> None:
+        """Handle RAG documents request"""
+        try:
+            if not self.rag_system:
+                await self._send_error(message.client_id, "RAG system not available")
+                return
+            
+            # Get all documents from RAG system
+            documents = await self.rag_system.get_all_documents()
+            
+            response = WebSocketMessage(
+                type=MessageType.RAG_RESPONSE,
+                data={"documents": documents},
+                timestamp=time.time(),
+                message_id=str(uuid.uuid4()),
+                client_id=message.client_id
+            )
+            
+            await self._send_message(message.client_id, response)
+            self.logger.info(f"Sent {len(documents)} documents to client {message.client_id}")
+            
+        except Exception as e:
+            self.logger.error(f"Error handling RAG documents request: {e}")
+            await self._send_error(message.client_id, f"Failed to get documents: {str(e)}")
+    
+    async def _handle_rag_search(self, message: WebSocketMessage) -> None:
+        """Handle RAG search request"""
+        try:
+            if not self.rag_system:
+                await self._send_error(message.client_id, "RAG system not available")
+                return
+            
+            query = message.data.get("query", "")
+            if not query:
+                await self._send_error(message.client_id, "Search query is required")
+                return
+            
+            # Search documents
+            results = await self.rag_system.search(query)
+            
+            response = WebSocketMessage(
+                type=MessageType.RAG_RESPONSE,
+                data={"searchResults": results},
+                timestamp=time.time(),
+                message_id=str(uuid.uuid4()),
+                client_id=message.client_id
+            )
+            
+            await self._send_message(message.client_id, response)
+            self.logger.info(f"Sent {len(results)} search results to client {message.client_id}")
+            
+        except Exception as e:
+            self.logger.error(f"Error handling RAG search request: {e}")
+            await self._send_error(message.client_id, f"Failed to search documents: {str(e)}")
+    
+    async def _handle_rag_add_document(self, message: WebSocketMessage) -> None:
+        """Handle RAG add document request"""
+        try:
+            if not self.rag_system:
+                await self._send_error(message.client_id, "RAG system not available")
+                return
+            
+            content = message.data.get("content", "")
+            metadata = message.data.get("metadata", {})
+            
+            if not content:
+                await self._send_error(message.client_id, "Document content is required")
+                return
+            
+            # Add document to RAG system
+            doc_id = await self.rag_system.add_document(content, metadata)
+            
+            response = WebSocketMessage(
+                type=MessageType.RAG_RESPONSE,
+                data={"success": True, "documentId": doc_id, "message": "Document added successfully"},
+                timestamp=time.time(),
+                message_id=str(uuid.uuid4()),
+                client_id=message.client_id
+            )
+            
+            await self._send_message(message.client_id, response)
+            self.logger.info(f"Added document {doc_id} for client {message.client_id}")
+            
+        except Exception as e:
+            self.logger.error(f"Error handling RAG add document request: {e}")
+            await self._send_error(message.client_id, f"Failed to add document: {str(e)}")
+    
+    async def _handle_rag_delete_document(self, message: WebSocketMessage) -> None:
+        """Handle RAG delete document request"""
+        try:
+            if not self.rag_system:
+                await self._send_error(message.client_id, "RAG system not available")
+                return
+            
+            doc_id = message.data.get("docId", "")
+            if not doc_id:
+                await self._send_error(message.client_id, "Document ID is required")
+                return
+            
+            # Delete document from RAG system
+            success = await self.rag_system.delete_document(doc_id)
+            
+            if success:
+                response = WebSocketMessage(
+                    type=MessageType.RAG_RESPONSE,
+                    data={"success": True, "message": "Document deleted successfully"},
+                    timestamp=time.time(),
+                    message_id=str(uuid.uuid4()),
+                    client_id=message.client_id
+                )
+            else:
+                response = WebSocketMessage(
+                    type=MessageType.RAG_RESPONSE,
+                    data={"success": False, "message": "Document not found"},
+                    timestamp=time.time(),
+                    message_id=str(uuid.uuid4()),
+                    client_id=message.client_id
+                )
+            
+            await self._send_message(message.client_id, response)
+            self.logger.info(f"Deleted document {doc_id} for client {message.client_id}")
+            
+        except Exception as e:
+            self.logger.error(f"Error handling RAG delete document request: {e}")
+            await self._send_error(message.client_id, f"Failed to delete document: {str(e)}")
 
 # Global WebSocket server instance
 _websocket_server: Optional[WebSocketServer] = None

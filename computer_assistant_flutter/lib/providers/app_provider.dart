@@ -1,12 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
-import '../models/websocket_message.dart';
+import '../shared/websocket_protocol.dart';
 import '../services/websocket_service.dart';
+import '../utils/error_handler.dart';
+import '../models/response_models.dart';
 import 'settings_provider.dart';
 
 // WebSocket Service Provider
 final webSocketServiceProvider = Provider<WebSocketService>((ref) {
-  return WebSocketService();
+  final service = WebSocketService();
+  // Initialize WebSocket service on startup
+  service.initialize();
+  return service;
 });
 
 // Connection Status Provider
@@ -71,24 +76,32 @@ class AppState {
   final bool isAuthenticated;
   final String? authToken;
   final String? currentVoiceCommand;
+  final String? lastVoiceResponse;
+  final bool isProcessing;
   final List<TerminalResponse> terminalOutput;
   final AIResponse? aiResponse;
   final SystemInfo? systemInfo;
   final List<FileInfo> fileList;
   final String? screenshot;
   final String? errorMessage;
+  final List<Map<String, dynamic>>? ragDocuments;
+  final List<Map<String, dynamic>>? ragSearchResults;
 
   const AppState({
     this.isConnected = false,
     this.isAuthenticated = false,
     this.authToken,
     this.currentVoiceCommand,
+    this.lastVoiceResponse,
+    this.isProcessing = false,
     this.terminalOutput = const [],
     this.aiResponse,
     this.systemInfo,
     this.fileList = const [],
     this.screenshot,
     this.errorMessage,
+    this.ragDocuments,
+    this.ragSearchResults,
   });
 
   AppState copyWith({
@@ -96,24 +109,32 @@ class AppState {
     bool? isAuthenticated,
     String? authToken,
     String? currentVoiceCommand,
+    String? lastVoiceResponse,
+    bool? isProcessing,
     List<TerminalResponse>? terminalOutput,
     AIResponse? aiResponse,
     SystemInfo? systemInfo,
     List<FileInfo>? fileList,
     String? screenshot,
     String? errorMessage,
+    List<Map<String, dynamic>>? ragDocuments,
+    List<Map<String, dynamic>>? ragSearchResults,
   }) {
     return AppState(
       isConnected: isConnected ?? this.isConnected,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       authToken: authToken ?? this.authToken,
       currentVoiceCommand: currentVoiceCommand ?? this.currentVoiceCommand,
+      lastVoiceResponse: lastVoiceResponse ?? this.lastVoiceResponse,
+      isProcessing: isProcessing ?? this.isProcessing,
       terminalOutput: terminalOutput ?? this.terminalOutput,
       aiResponse: aiResponse ?? this.aiResponse,
       systemInfo: systemInfo ?? this.systemInfo,
       fileList: fileList ?? this.fileList,
       screenshot: screenshot ?? this.screenshot,
       errorMessage: errorMessage ?? this.errorMessage,
+      ragDocuments: ragDocuments ?? this.ragDocuments,
+      ragSearchResults: ragSearchResults ?? this.ragSearchResults,
     );
   }
 }
@@ -138,52 +159,111 @@ class AppStateNotifier extends StateNotifier<AppState> {
   }
 
   void _handleMessage(WebSocketMessage message) {
-    switch (message.type) {
-      case MessageType.authResponse:
-        final success = message.data['success'] as bool? ?? false;
-        state = state.copyWith(isAuthenticated: success);
-        break;
-        
-      case MessageType.voiceResponse:
-        final command = message.data['command'] as String? ?? '';
-        state = state.copyWith(currentVoiceCommand: command);
-        break;
-        
-      case MessageType.terminalResponse:
-        final response = TerminalResponse.fromJson(message.data);
-        final newOutput = [...state.terminalOutput, response];
-        state = state.copyWith(terminalOutput: newOutput);
-        break;
-        
-      case MessageType.aiResponse:
-        final response = AIResponse.fromJson(message.data);
-        state = state.copyWith(aiResponse: response);
-        break;
-        
-      case MessageType.systemInfo:
-        final info = SystemInfo.fromJson(message.data);
-        state = state.copyWith(systemInfo: info);
-        break;
-        
-      case MessageType.fileResponse:
-        final files = (message.data['files'] as List?)
-            ?.map((file) => FileInfo.fromJson(file))
-            .toList() ?? [];
-        state = state.copyWith(fileList: files);
-        break;
-        
-      case MessageType.screenshotResponse:
-        final screenshot = message.data['screenshot'] as String?;
-        state = state.copyWith(screenshot: screenshot);
-        break;
-        
-      case MessageType.error:
-        final error = message.data['error'] as String? ?? 'Unknown error';
-        state = state.copyWith(errorMessage: error);
-        break;
-        
-      default:
-        _logger.d('Unhandled message type: ${message.type.name}');
+    try {
+      switch (message.type) {
+        case MessageType.authResponse:
+          final success = message.data['success'] as bool? ?? false;
+          state = state.copyWith(isAuthenticated: success);
+          break;
+          
+        case MessageType.voiceResponse:
+          final command = message.data['command'] as String? ?? '';
+          final response = message.data['response'] as String? ?? '';
+          final success = message.data['success'] as bool? ?? false;
+          
+          state = state.copyWith(
+            currentVoiceCommand: command,
+            lastVoiceResponse: response,
+            isProcessing: false,
+          );
+          
+          if (success) {
+            _logger.i('Voice command processed successfully: $command -> $response');
+          } else {
+            _logger.w('Voice command failed: $command');
+          }
+          break;
+          
+        case MessageType.notification:
+          final notification = message.data['message'] as String? ?? '';
+          final type = message.data['type'] as String? ?? 'info';
+          _logger.i('Notification ($type): $notification');
+          // You can add notification display logic here
+          break;
+          
+        case MessageType.error:
+          final error = message.data['error'] as String? ?? '';
+          _logger.e('Server error: $error');
+          // You can add error display logic here
+          break;
+          
+        case MessageType.pong:
+          _logger.d('Received pong from server');
+          break;
+          
+        case MessageType.status:
+          final serverTime = message.data['server_time'] as double? ?? 0.0;
+          final connectedClients = message.data['connected_clients'] as int? ?? 0;
+          final uptime = message.data['uptime'] as double? ?? 0.0;
+          _logger.d('Server status: $connectedClients clients, uptime: ${uptime.toStringAsFixed(1)}s');
+          break;
+          
+        case MessageType.terminalResponse:
+          final response = TerminalResponse.fromJson(message.data);
+          final newOutput = [...state.terminalOutput, response];
+          state = state.copyWith(terminalOutput: newOutput);
+          break;
+          
+        case MessageType.aiResponse:
+          final response = AIResponse.fromJson(message.data);
+          state = state.copyWith(aiResponse: response);
+          break;
+          
+        case MessageType.systemInfo:
+          final info = SystemInfo.fromJson(message.data);
+          state = state.copyWith(systemInfo: info);
+          break;
+          
+        case MessageType.fileResponse:
+          final files = (message.data['files'] as List?)
+              ?.map((file) => FileInfo.fromJson(file))
+              .toList() ?? [];
+          state = state.copyWith(fileList: files);
+          break;
+          
+        case MessageType.screenshotResponse:
+          final screenshot = message.data['screenshot'] as String?;
+          state = state.copyWith(screenshot: screenshot);
+          break;
+          
+        case MessageType.ragResponse:
+          final documents = (message.data['documents'] as List?)
+              ?.map((doc) => Map<String, dynamic>.from(doc))
+              .toList();
+          final searchResults = (message.data['searchResults'] as List?)
+              ?.map((result) => Map<String, dynamic>.from(result))
+              .toList();
+          
+          if (documents != null) {
+            state = state.copyWith(ragDocuments: documents);
+          }
+          if (searchResults != null) {
+            state = state.copyWith(ragSearchResults: searchResults);
+          }
+          break;
+          
+        case MessageType.error:
+          final error = message.data['error'] as String? ?? 'Unknown error';
+          state = state.copyWith(errorMessage: error);
+          ErrorHandler.logError('AppProvider', 'Server error: $error');
+          break;
+          
+        default:
+          _logger.d('Unhandled message type: ${message.type.name}');
+      }
+    } catch (e) {
+      ErrorHandler.logError('AppProvider', 'Error handling message: $e');
+      state = state.copyWith(errorMessage: 'Error processing server response');
     }
   }
 
@@ -229,6 +309,43 @@ class AppStateNotifier extends StateNotifier<AppState> {
 
   Future<void> requestScreenshot() async {
     await _webSocketService.requestScreenshot();
+  }
+
+  // RAG methods
+  Future<void> requestRAGDocuments() async {
+    try {
+      await _webSocketService.requestRAGDocuments();
+    } catch (e) {
+      ErrorHandler.logError('AppProvider', 'Failed to request RAG documents: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> searchRAGDocuments(String query) async {
+    try {
+      await _webSocketService.searchRAGDocuments(query);
+    } catch (e) {
+      ErrorHandler.logError('AppProvider', 'Failed to search RAG documents: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> addRAGDocument(String content, Map<String, dynamic> metadata) async {
+    try {
+      await _webSocketService.addRAGDocument(content, metadata);
+    } catch (e) {
+      ErrorHandler.logError('AppProvider', 'Failed to add RAG document: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteRAGDocument(String docId) async {
+    try {
+      await _webSocketService.deleteRAGDocument(docId);
+    } catch (e) {
+      ErrorHandler.logError('AppProvider', 'Failed to delete RAG document: $e');
+      rethrow;
+    }
   }
 
   // Utility methods

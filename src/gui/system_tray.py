@@ -135,7 +135,7 @@ class JARVISSystemTray:
         
         # Add some sample logs
         log_text.insert(tk.END, "2025-09-10 02:14:58 - JARVIS Computer Assistant is running!\n")
-        log_text.insert(tk.END, "2025-09-10 02:14:58 - WebSocket server started on 0.0.0.0:8765\n")
+        log_text.insert(tk.END, "2025-09-10 02:14:58 - WebSocket server started on 100.109.80.8:8765\n")
         log_text.insert(tk.END, "2025-09-10 02:14:58 - Authentication token: caeed0c5-2e69-430b-9c20-9bc82637dfc0\n")
         log_text.insert(tk.END, "2025-09-10 02:14:58 - Press Ctrl+C to stop\n")
         log_text.config(state=tk.DISABLED)

@@ -11,6 +11,14 @@ class ClientSettings {
   final bool autoConnect;
   final bool saveCredentials;
   final String? savedAuthToken;
+  
+  // AI Provider Settings
+  final String aiProvider;
+  final String aiModel;
+  final String? aiApiKey;
+  final double aiTemperature;
+  final int aiMaxTokens;
+  final bool showApiKey;
 
   const ClientSettings({
     this.serverHost = '100.109.80.8',
@@ -18,9 +26,15 @@ class ClientSettings {
     this.useSSL = false,
     this.connectionTimeout = 30,
     this.heartbeatInterval = 30,
-    this.autoConnect = false,
+    this.autoConnect = true,
     this.saveCredentials = true,
     this.savedAuthToken,
+    this.aiProvider = 'ollama',
+    this.aiModel = 'llama3.1',
+    this.aiApiKey,
+    this.aiTemperature = 0.7,
+    this.aiMaxTokens = 2000,
+    this.showApiKey = false,
   });
 
   ClientSettings copyWith({
@@ -32,6 +46,12 @@ class ClientSettings {
     bool? autoConnect,
     bool? saveCredentials,
     String? savedAuthToken,
+    String? aiProvider,
+    String? aiModel,
+    String? aiApiKey,
+    double? aiTemperature,
+    int? aiMaxTokens,
+    bool? showApiKey,
   }) {
     return ClientSettings(
       serverHost: serverHost ?? this.serverHost,
@@ -42,6 +62,12 @@ class ClientSettings {
       autoConnect: autoConnect ?? this.autoConnect,
       saveCredentials: saveCredentials ?? this.saveCredentials,
       savedAuthToken: savedAuthToken ?? this.savedAuthToken,
+      aiProvider: aiProvider ?? this.aiProvider,
+      aiModel: aiModel ?? this.aiModel,
+      aiApiKey: aiApiKey ?? this.aiApiKey,
+      aiTemperature: aiTemperature ?? this.aiTemperature,
+      aiMaxTokens: aiMaxTokens ?? this.aiMaxTokens,
+      showApiKey: showApiKey ?? this.showApiKey,
     );
   }
 
@@ -60,6 +86,12 @@ class ClientSettings {
       'autoConnect': autoConnect,
       'saveCredentials': saveCredentials,
       'savedAuthToken': savedAuthToken,
+      'aiProvider': aiProvider,
+      'aiModel': aiModel,
+      'aiApiKey': aiApiKey,
+      'aiTemperature': aiTemperature,
+      'aiMaxTokens': aiMaxTokens,
+      'showApiKey': showApiKey,
     };
   }
 
@@ -73,6 +105,12 @@ class ClientSettings {
       autoConnect: json['autoConnect'] as bool? ?? false,
       saveCredentials: json['saveCredentials'] as bool? ?? true,
       savedAuthToken: json['savedAuthToken'] as String?,
+      aiProvider: json['aiProvider'] as String? ?? 'ollama',
+      aiModel: json['aiModel'] as String? ?? 'llama3.1',
+      aiApiKey: json['aiApiKey'] as String?,
+      aiTemperature: (json['aiTemperature'] as num?)?.toDouble() ?? 0.7,
+      aiMaxTokens: json['aiMaxTokens'] as int? ?? 2000,
+      showApiKey: json['showApiKey'] as bool? ?? false,
     );
   }
 }
@@ -166,6 +204,36 @@ class SettingsNotifier extends StateNotifier<ClientSettings> {
   Future<void> updateAuthToken(String? token) async {
     state = state.copyWith(savedAuthToken: token);
     await _saveSettings();
+  }
+
+  // AI Provider methods
+  Future<void> updateAIProvider(String provider) async {
+    state = state.copyWith(aiProvider: provider);
+    await _saveSettings();
+  }
+
+  Future<void> updateAIModel(String model) async {
+    state = state.copyWith(aiModel: model);
+    await _saveSettings();
+  }
+
+  Future<void> updateAIApiKey(String? apiKey) async {
+    state = state.copyWith(aiApiKey: apiKey);
+    await _saveSettings();
+  }
+
+  Future<void> updateAITemperature(double temperature) async {
+    state = state.copyWith(aiTemperature: temperature);
+    await _saveSettings();
+  }
+
+  Future<void> updateAIMaxTokens(int maxTokens) async {
+    state = state.copyWith(aiMaxTokens: maxTokens);
+    await _saveSettings();
+  }
+
+  void toggleApiKeyVisibility() {
+    state = state.copyWith(showApiKey: !state.showApiKey);
   }
 
   Future<void> updateSettings({

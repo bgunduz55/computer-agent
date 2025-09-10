@@ -461,26 +461,7 @@ Available commands for application control:
         try:
             self.logger.info(f"Processing AI query: {query[:50]}...")
             
-            # Check if event loop is still running and not closed
-            try:
-                loop = asyncio.get_running_loop()
-                self.logger.info(f"Event loop status - closed: {loop.is_closed()}, running: {loop.is_running()}")
-                
-                # Check if event loop is closed or not running
-                if loop.is_closed():
-                    self.logger.warning("Event loop is closed, cannot process AI query")
-                    return "AI service is currently unavailable (system shutting down)"
-                
-                # Additional check for event loop health
-                if not loop.is_running():
-                    self.logger.warning("Event loop is not running, cannot process AI query")
-                    return "AI service is currently unavailable (event loop not running)"
-                    
-            except RuntimeError as e:
-                self.logger.warning(f"No running event loop, cannot process AI query: {e}")
-                return "AI service is currently unavailable (no event loop)"
-            
-            # Additional check: if we're in the process of shutting down
+            # Check if we're initialized
             if not self._initialized:
                 self.logger.warning("AI provider manager not initialized, cannot process AI query")
                 return "AI service is currently unavailable (not initialized)"

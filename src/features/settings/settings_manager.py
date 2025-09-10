@@ -97,8 +97,8 @@ class SecuritySettings:
 class RemoteSettings:
     """Remote control settings"""
     websocket_enabled: bool = True
-    websocket_port: int = 8766  # Changed from 8765 to avoid conflict
-    websocket_host: str = "0.0.0.0"
+    websocket_port: int = 8765
+    websocket_host: str = "100.109.80.8"
     websocket_ssl: bool = False
     websocket_cert: Optional[str] = None
     websocket_key: Optional[str] = None
@@ -507,7 +507,7 @@ class SettingsManager:
             # Validate host
             if not self.remote.websocket_host:
                 errors.append("WebSocket host cannot be empty")
-            elif self.remote.websocket_host not in ["0.0.0.0", "localhost", "127.0.0.1"]:
+            elif self.remote.websocket_host not in ["0.0.0.0", "localhost", "127.0.0.1", "100.109.80.8"]:
                 # Basic IP validation
                 parts = self.remote.websocket_host.split('.')
                 if len(parts) != 4:
@@ -536,7 +536,7 @@ class SettingsManager:
             # Validate allowed IPs
             if self.remote.allowed_ips:
                 for ip in self.remote.allowed_ips:
-                    if ip not in ["0.0.0.0", "localhost", "127.0.0.1"]:
+                    if ip not in ["0.0.0.0", "localhost", "127.0.0.1", "100.109.80.8"]:
                         parts = ip.split('.')
                         if len(parts) != 4:
                             errors.append(f"Invalid allowed IP format: {ip}")

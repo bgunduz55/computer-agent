@@ -39,9 +39,25 @@ class OllamaProvider(BaseAIProvider):
     def _initialize_provider(self) -> None:
         """Initialize Ollama provider"""
         try:
-            # Create HTTP session
+            # Create HTTP session with better configuration
+            connector = aiohttp.TCPConnector(
+                limit=10,
+                limit_per_host=5,
+                ttl_dns_cache=300,
+                use_dns_cache=True,
+            )
+            
             self.session = aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=300)
+                connector=connector,
+                timeout=aiohttp.ClientTimeout(
+                    total=300,
+                    connect=30,
+                    sock_read=60
+                ),
+                headers={
+                    'User-Agent': 'JARVIS-Computer-Assistant/1.0',
+                    'Content-Type': 'application/json'
+                }
             )
             
             # Load available models
@@ -57,8 +73,8 @@ class OllamaProvider(BaseAIProvider):
         try:
             # Default models from config
             default_models = self.config.get("models", [
-                "deepseek-r1:7b",
                 "gpt-oss:20b",
+                "deepseek-r1:7b",
                 "llama2:7b",
                 "codellama:7b"
             ])
@@ -88,27 +104,6 @@ class OllamaProvider(BaseAIProvider):
         try:
             self.logger.info(f"Generating response for model: {request.model}")
             
-            # Check if event loop is still running and healthy
-            try:
-                loop = asyncio.get_running_loop()
-                self.logger.info(f"Event loop status - closed: {loop.is_closed()}, running: {loop.is_running()}")
-                
-                # Check if event loop is closed or not running
-                if loop.is_closed():
-                    self.logger.warning("Event loop is closed, cannot generate response")
-                    raise RuntimeError("Event loop is closed")
-                if not loop.is_running():
-                    self.logger.warning("Event loop is not running, cannot generate response")
-                    raise RuntimeError("Event loop is not running")
-            except RuntimeError as e:
-                self.logger.warning(f"No running event loop: {e}")
-                raise RuntimeError(f"No running event loop: {e}")
-            
-            # Additional check: if we're in the process of shutting down
-            if not self._initialized:
-                self.logger.warning("Ollama provider not initialized, cannot generate response")
-                raise RuntimeError("Ollama provider not initialized")
-            
             start_time = time.time()
             
             # Prepare request payload
@@ -127,41 +122,46 @@ class OllamaProvider(BaseAIProvider):
             if request.context:
                 payload["context"] = request.context
             
-            # Make request to Ollama
-            async with self.session.post(
-                f"{self.base_url}/api/generate",
-                json=payload
-            ) as response:
-                if response.status != 200:
-                    error_text = await response.text()
-                    raise RuntimeError(f"Ollama API error: {response.status} - {error_text}")
-                
-                # Parse response
-                response_data = await response.json()
-                
-                # Extract content
-                content = response_data.get("response", "")
-                
-                # Calculate metrics
-                response_time = time.time() - start_time
-                tokens_used = len(content.split())  # Rough estimation
-                
-                return AIResponse(
-                    content=content,
-                    model=request.model,
-                    provider=AIProviderType.OLLAMA,
-                    tokens_used=tokens_used,
-                    cost=0.0,  # Local inference is free
-                    response_time=response_time,
-                    metadata={
-                        "context": response_data.get("context"),
-                        "done": response_data.get("done", True),
-                        "total_duration": response_data.get("total_duration", 0),
-                        "load_duration": response_data.get("load_duration", 0),
-                        "prompt_eval_duration": response_data.get("prompt_eval_duration", 0),
-                        "eval_duration": response_data.get("eval_duration", 0)
-                    }
-                )
+            # Make request to Ollama with new session to avoid event loop issues
+            async with aiohttp.ClientSession(
+                connector=aiohttp.TCPConnector(limit=10, limit_per_host=5),
+                timeout=aiohttp.ClientTimeout(total=300, connect=30, sock_read=60),
+                headers={'User-Agent': 'JARVIS-Computer-Assistant/1.0', 'Content-Type': 'application/json'}
+            ) as session:
+                async with session.post(
+                    f"{self.base_url}/api/generate",
+                    json=payload
+                ) as response:
+                    if response.status != 200:
+                        error_text = await response.text()
+                        raise RuntimeError(f"Ollama API error: {response.status} - {error_text}")
+                    
+                    # Parse response
+                    response_data = await response.json()
+                    
+                    # Extract content
+                    content = response_data.get("response", "")
+                    
+                    # Calculate metrics
+                    response_time = time.time() - start_time
+                    tokens_used = len(content.split())  # Rough estimation
+                    
+                    return AIResponse(
+                        content=content,
+                        model=request.model,
+                        provider=AIProviderType.OLLAMA,
+                        tokens_used=tokens_used,
+                        cost=0.0,  # Local inference is free
+                        response_time=response_time,
+                        metadata={
+                            "context": response_data.get("context"),
+                            "done": response_data.get("done", True),
+                            "total_duration": response_data.get("total_duration", 0),
+                            "load_duration": response_data.get("load_duration", 0),
+                            "prompt_eval_duration": response_data.get("prompt_eval_duration", 0),
+                            "eval_duration": response_data.get("eval_duration", 0)
+                        }
+                    )
         
         except Exception as e:
             self.logger.error(f"Failed to generate response with Ollama: {e}")

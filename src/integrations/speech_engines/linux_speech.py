@@ -210,7 +210,17 @@ class ESpeakTTSEngine(BaseTextToSpeechEngine):
                 
                 # Generate speech if not cached
                 if not temp_file.exists():
-                    language = self.language_mapping.get(self.config.language, "en")
+                    # Get language string safely
+                    language_str = None
+                    if hasattr(self.config, 'language'):
+                        if hasattr(self.config.language, 'value'):
+                            language_str = self.config.language.value
+                        else:
+                            language_str = str(self.config.language)
+                    else:
+                        language_str = "en"  # Default to English
+                    
+                    language = self.language_mapping.get(language_str, "en")
                     cmd = [
                         "espeak",
                         "-s", "150",  # Speed
@@ -321,6 +331,16 @@ class FestivalTTSEngine(BaseTextToSpeechEngine):
                 
                 # Generate speech if not cached
                 if not temp_file.exists():
+                    # Get language string safely (Festival doesn't support language switching easily)
+                    language_str = None
+                    if hasattr(self.config, 'language'):
+                        if hasattr(self.config.language, 'value'):
+                            language_str = self.config.language.value
+                        else:
+                            language_str = str(self.config.language)
+                    else:
+                        language_str = "en"  # Default to English
+                    
                     cmd = [
                         "festival",
                         "--tts",

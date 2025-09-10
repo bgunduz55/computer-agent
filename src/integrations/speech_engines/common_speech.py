@@ -15,6 +15,17 @@ import asyncio
 import time
 from pathlib import Path
 
+# Import WakeWordState from enhanced_voice_recognition
+try:
+    from .enhanced_voice_recognition import WakeWordState
+except ImportError:
+    # Fallback if enhanced_voice_recognition is not available
+    class WakeWordState(Enum):
+        LISTENING = "listening"
+        DETECTED = "detected"
+        PROCESSING = "processing"
+        IDLE = "idle"
+
 logger = logging.getLogger(__name__)
 
 class SpeechEngineType(Enum):
@@ -398,6 +409,43 @@ class SpeechManager:
         if self._use_enhanced and self._enhanced_recognition:
             self._enhanced_recognition.on_wake_word_detected = on_wake_word
             self._enhanced_recognition.on_speech_detected = on_speech
+    
+    def cleanup(self) -> None:
+        """Cleanup speech manager and all resources"""
+        try:
+            with self._lock:
+                self.logger.info("Cleaning up speech manager...")
+                
+                # Stop enhanced recognition
+                if self._enhanced_recognition:
+                    try:
+                        self._enhanced_recognition.stop_listening()
+                        self._enhanced_recognition = None
+                    except Exception as e:
+                        self.logger.warning(f"Error cleaning up enhanced recognition: {e}")
+                
+                # Cleanup recognition engine
+                if self._recognition_engine:
+                    try:
+                        if hasattr(self._recognition_engine, 'cleanup'):
+                            self._recognition_engine.cleanup()
+                        self._recognition_engine = None
+                    except Exception as e:
+                        self.logger.warning(f"Error cleaning up recognition engine: {e}")
+                
+                # Cleanup TTS engine
+                if self._tts_engine:
+                    try:
+                        if hasattr(self._tts_engine, 'cleanup'):
+                            self._tts_engine.cleanup()
+                        self._tts_engine = None
+                    except Exception as e:
+                        self.logger.warning(f"Error cleaning up TTS engine: {e}")
+                
+                self.logger.info("Speech manager cleanup completed")
+                
+        except Exception as e:
+            self.logger.error(f"Error during speech manager cleanup: {e}")
 
 class WakeWordDetector:
     """Wake word detection system"""

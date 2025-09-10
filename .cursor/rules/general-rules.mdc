@@ -356,5 +356,5 @@ bandit -r src/
 # Run application
 python src/main.py
 ```
-
+* Do not use mock anywhere! *
 Remember: Clean code is not written by following a set of rules. It's written by programmers who care about their craft and continuously strive to improve their skills. These rules are guidelines to help you write better code, but the most important thing is to think critically about your code and always ask: "How can I make this better?"

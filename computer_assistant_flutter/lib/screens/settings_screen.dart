@@ -70,6 +70,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           children: [
             _buildConnectionSection(theme),
             const SizedBox(height: 24),
+            _buildAIProviderSection(theme),
+            const SizedBox(height: 24),
             _buildAdvancedSection(theme),
             const SizedBox(height: 24),
             _buildSecuritySection(theme),
@@ -191,6 +193,244 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: Text(
                       'Server URL: ${ref.watch(serverUrlProvider)}',
                       style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAIProviderSection(ThemeData theme) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.smart_toy_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'AI Provider Settings',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Consumer(
+              builder: (context, ref, child) {
+                final settings = ref.watch(settingsProvider);
+                return DropdownButtonFormField<String>(
+                  value: settings.aiProvider,
+                  decoration: const InputDecoration(
+                    labelText: 'AI Provider',
+                    hintText: 'Select AI provider',
+                    prefixIcon: Icon(Icons.psychology_rounded),
+                    filled: true,
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'ollama',
+                      child: Row(
+                        children: [
+                          Icon(Icons.computer, size: 20),
+                          SizedBox(width: 8),
+                          Text('Ollama (Local)'),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'openai',
+                      child: Row(
+                        children: [
+                          Icon(Icons.open_in_new, size: 20),
+                          SizedBox(width: 8),
+                          Text('OpenAI'),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'google_gemini',
+                      child: Row(
+                        children: [
+                          Icon(Icons.g_mobiledata, size: 20),
+                          SizedBox(width: 8),
+                          Text('Google Gemini'),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'openrouter',
+                      child: Row(
+                        children: [
+                          Icon(Icons.router, size: 20),
+                          SizedBox(width: 8),
+                          Text('OpenRouter'),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'anthropic',
+                      child: Row(
+                        children: [
+                          Icon(Icons.auto_awesome, size: 20),
+                          SizedBox(width: 8),
+                          Text('Anthropic Claude'),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      ref.read(settingsProvider.notifier).updateAIProvider(value);
+                    }
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            Consumer(
+              builder: (context, ref, child) {
+                final settings = ref.watch(settingsProvider);
+                return TextField(
+                  decoration: InputDecoration(
+                    labelText: 'AI Model',
+                    hintText: 'e.g., gpt-4, claude-3, gemini-pro',
+                    prefixIcon: const Icon(Icons.model_training_rounded),
+                    filled: true,
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.refresh_rounded),
+                      onPressed: () => _refreshModels(),
+                      tooltip: 'Refresh Models',
+                    ),
+                  ),
+                  controller: TextEditingController(text: settings.aiModel),
+                  onChanged: (value) {
+                    ref.read(settingsProvider.notifier).updateAIModel(value);
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            Consumer(
+              builder: (context, ref, child) {
+                final settings = ref.watch(settingsProvider);
+                return TextField(
+                  decoration: InputDecoration(
+                    labelText: 'API Key',
+                    hintText: 'Enter your API key',
+                    prefixIcon: const Icon(Icons.key_rounded),
+                    filled: true,
+                    suffixIcon: IconButton(
+                      icon: Icon(settings.showApiKey ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => _toggleApiKeyVisibility(),
+                      tooltip: settings.showApiKey ? 'Hide API Key' : 'Show API Key',
+                    ),
+                  ),
+                  obscureText: !settings.showApiKey,
+                  controller: TextEditingController(text: settings.aiApiKey ?? ''),
+                  onChanged: (value) {
+                    ref.read(settingsProvider.notifier).updateAIApiKey(value.isEmpty ? null : value);
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Consumer(
+                    builder: (context, ref, child) {
+                      final settings = ref.watch(settingsProvider);
+                      return Slider(
+                        value: settings.aiTemperature,
+                        min: 0.0,
+                        max: 2.0,
+                        divisions: 20,
+                        label: 'Temperature: ${settings.aiTemperature.toStringAsFixed(1)}',
+                        onChanged: (value) {
+                          ref.read(settingsProvider.notifier).updateAITemperature(value);
+                        },
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Consumer(
+                  builder: (context, ref, child) {
+                    final settings = ref.watch(settingsProvider);
+                    return Chip(
+                      label: Text('Temp: ${settings.aiTemperature.toStringAsFixed(1)}'),
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Consumer(
+                    builder: (context, ref, child) {
+                      final settings = ref.watch(settingsProvider);
+                      return Slider(
+                        value: settings.aiMaxTokens.toDouble(),
+                        min: 100,
+                        max: 4000,
+                        divisions: 39,
+                        label: 'Max Tokens: ${settings.aiMaxTokens}',
+                        onChanged: (value) {
+                          ref.read(settingsProvider.notifier).updateAIMaxTokens(value.round());
+                        },
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Consumer(
+                  builder: (context, ref, child) {
+                    final settings = ref.watch(settingsProvider);
+                    return Chip(
+                      label: Text('Tokens: ${settings.aiMaxTokens}'),
+                      backgroundColor: theme.colorScheme.secondaryContainer,
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: theme.colorScheme.primary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Current Provider: ${ref.watch(settingsProvider).aiProvider.toUpperCase()}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
@@ -513,5 +753,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  void _refreshModels() {
+    // TODO: Implement model refresh functionality
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Refreshing available models...'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _toggleApiKeyVisibility() {
+    ref.read(settingsProvider.notifier).toggleApiKeyVisibility();
   }
 }

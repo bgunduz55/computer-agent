@@ -176,6 +176,41 @@ class EnhancedVoiceRecognition:
         
         self.logger.info("Enhanced voice recognition stopped listening")
     
+    def cleanup(self) -> None:
+        """Cleanup enhanced voice recognition resources"""
+        try:
+            self.logger.info("Cleaning up enhanced voice recognition...")
+            
+            # Stop listening first
+            self.stop_listening()
+            
+            # Clear audio buffers
+            self.audio_buffer.clear()
+            self.speech_buffer.clear()
+            self.noise_samples.clear()
+            
+            # Reset state
+            self.state = WakeWordState.IDLE
+            self.is_processing = False
+            
+            # Clear callbacks
+            self.on_wake_word_detected = None
+            self.on_speech_detected = None
+            self.on_audio_quality_changed = None
+            
+            # Clear performance tracking
+            self.detection_times.clear()
+            self.false_positives = 0
+            self.true_positives = 0
+            
+            # Reset quality metrics
+            self.quality_metrics = AudioQualityMetrics(0, 0, 0, 0, 0, False)
+            
+            self.logger.info("Enhanced voice recognition cleanup completed")
+            
+        except Exception as e:
+            self.logger.error(f"Error during enhanced voice recognition cleanup: {e}")
+    
     def _listen_loop(self) -> None:
         """Main listening loop"""
         while self.is_listening and not self.stop_event.is_set():

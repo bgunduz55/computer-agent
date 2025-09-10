@@ -251,7 +251,16 @@ class JARVISUnifiedWindow:
         self.voice_test_input.pack(side=tk.LEFT, padx=(10, 10), fill=tk.X, expand=True)
         self.voice_test_input.bind('<Return>', self.test_voice_command)
         
-        ttk.Button(input_frame, text="Test", command=self.test_voice_command).pack(side=tk.RIGHT)
+        ttk.Button(input_frame, text="Test", command=self.test_voice_command).pack(side=tk.RIGHT, padx=(5, 0))
+        
+        # Voice recording button
+        self.voice_record_btn = ttk.Button(input_frame, text="🎤 Record", 
+                                         command=self.start_voice_recording)
+        self.voice_record_btn.pack(side=tk.RIGHT, padx=(5, 0))
+        
+        # Voice recording status
+        self.voice_recording_status = ttk.Label(input_frame, text="", foreground="red")
+        self.voice_recording_status.pack(side=tk.RIGHT, padx=(10, 0))
         
         # Response
         ttk.Label(test_frame, text="Response:").pack(anchor=tk.W, pady=(10, 5))
@@ -388,7 +397,8 @@ class JARVISUnifiedWindow:
         ttk.Label(lang_row, text="Language:").pack(side=tk.LEFT)
         self.language_var = tk.StringVar(value="en")
         lang_combo = ttk.Combobox(lang_row, textvariable=self.language_var, 
-                                 values=["en", "tr", "es"], state="readonly", width=20)
+                                 values=["en", "tr", "es", "fr", "de", "it", "ru", "zh", "ja", "ko"], 
+                                 state="readonly", width=20)
         lang_combo.pack(side=tk.LEFT, padx=(10, 0))
         
         # Theme
@@ -397,21 +407,99 @@ class JARVISUnifiedWindow:
         ttk.Label(theme_row, text="Theme:").pack(side=tk.LEFT)
         self.theme_var = tk.StringVar(value="light")
         theme_combo = ttk.Combobox(theme_row, textvariable=self.theme_var, 
-                                  values=["light", "dark"], state="readonly", width=20)
+                                  values=["light", "dark", "auto"], state="readonly", width=20)
         theme_combo.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # Timezone
+        timezone_row = ttk.Frame(general_frame)
+        timezone_row.pack(fill=tk.X, pady=5)
+        ttk.Label(timezone_row, text="Timezone:").pack(side=tk.LEFT)
+        self.timezone_var = tk.StringVar(value="UTC")
+        timezone_combo = ttk.Combobox(timezone_row, textvariable=self.timezone_var, 
+                                     values=["UTC", "Europe/Istanbul", "America/New_York", "Asia/Tokyo"], 
+                                     state="readonly", width=20)
+        timezone_combo.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # Startup Settings
+        startup_row = ttk.Frame(general_frame)
+        startup_row.pack(fill=tk.X, pady=5)
+        self.auto_start_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(startup_row, text="Start JARVIS automatically on startup", 
+                       variable=self.auto_start_var).pack(side=tk.LEFT)
+        
+        # Minimize to tray
+        tray_row = ttk.Frame(general_frame)
+        tray_row.pack(fill=tk.X, pady=5)
+        self.minimize_to_tray_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(tray_row, text="Minimize to system tray", 
+                       variable=self.minimize_to_tray_var).pack(side=tk.LEFT)
         
         # Voice Settings
         voice_frame = ttk.LabelFrame(content_frame, text="Voice Settings", padding="15")
         voice_frame.pack(fill=tk.X, pady=(0, 10))
         
-        # Voice Engine
-        voice_row = ttk.Frame(voice_frame)
-        voice_row.pack(fill=tk.X, pady=5)
-        ttk.Label(voice_row, text="Voice Engine:").pack(side=tk.LEFT)
-        self.voice_engine_var = tk.StringVar(value="sapi5")
-        voice_combo = ttk.Combobox(voice_row, textvariable=self.voice_engine_var, 
-                                  values=["sapi5", "edge"], state="readonly", width=20)
-        voice_combo.pack(side=tk.LEFT, padx=(10, 0))
+        # Speech Recognition
+        sr_row = ttk.Frame(voice_frame)
+        sr_row.pack(fill=tk.X, pady=5)
+        ttk.Label(sr_row, text="Speech Recognition Engine:").pack(side=tk.LEFT)
+        self.sr_engine_var = tk.StringVar(value="google")
+        sr_combo = ttk.Combobox(sr_row, textvariable=self.sr_engine_var, 
+                               values=["google", "sphinx", "azure", "bing"], 
+                               state="readonly", width=20)
+        sr_combo.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # TTS Engine
+        tts_row = ttk.Frame(voice_frame)
+        tts_row.pack(fill=tk.X, pady=5)
+        ttk.Label(tts_row, text="Text-to-Speech Engine:").pack(side=tk.LEFT)
+        self.tts_engine_var = tk.StringVar(value="sapi5")
+        tts_combo = ttk.Combobox(tts_row, textvariable=self.tts_engine_var, 
+                                values=["sapi5", "edge", "espeak", "festival"], 
+                                state="readonly", width=20)
+        tts_combo.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # Voice Language
+        voice_lang_row = ttk.Frame(voice_frame)
+        voice_lang_row.pack(fill=tk.X, pady=5)
+        ttk.Label(voice_lang_row, text="Voice Language:").pack(side=tk.LEFT)
+        self.voice_lang_var = tk.StringVar(value="en-US")
+        voice_lang_combo = ttk.Combobox(voice_lang_row, textvariable=self.voice_lang_var, 
+                                       values=["en-US", "tr-TR", "es-ES", "fr-FR", "de-DE"], 
+                                       state="readonly", width=20)
+        voice_lang_combo.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # Confidence Threshold
+        conf_row = ttk.Frame(voice_frame)
+        conf_row.pack(fill=tk.X, pady=5)
+        ttk.Label(conf_row, text="Confidence Threshold:").pack(side=tk.LEFT)
+        self.confidence_var = tk.DoubleVar(value=0.7)
+        conf_scale = ttk.Scale(conf_row, from_=0.1, to=1.0, variable=self.confidence_var, 
+                              orient=tk.HORIZONTAL, length=200)
+        conf_scale.pack(side=tk.LEFT, padx=(10, 0))
+        conf_label = ttk.Label(conf_row, text="0.7")
+        conf_label.pack(side=tk.LEFT, padx=(5, 0))
+        
+        # Voice Rate
+        rate_row = ttk.Frame(voice_frame)
+        rate_row.pack(fill=tk.X, pady=5)
+        ttk.Label(rate_row, text="Voice Rate:").pack(side=tk.LEFT)
+        self.rate_var = tk.IntVar(value=150)
+        rate_scale = ttk.Scale(rate_row, from_=50, to=300, variable=self.rate_var, 
+                              orient=tk.HORIZONTAL, length=200)
+        rate_scale.pack(side=tk.LEFT, padx=(10, 0))
+        rate_label = ttk.Label(rate_row, text="150")
+        rate_label.pack(side=tk.LEFT, padx=(5, 0))
+        
+        # Voice Volume
+        volume_row = ttk.Frame(voice_frame)
+        volume_row.pack(fill=tk.X, pady=5)
+        ttk.Label(volume_row, text="Voice Volume:").pack(side=tk.LEFT)
+        self.volume_var = tk.DoubleVar(value=0.9)
+        volume_scale = ttk.Scale(volume_row, from_=0.0, to=1.0, variable=self.volume_var, 
+                                orient=tk.HORIZONTAL, length=200)
+        volume_scale.pack(side=tk.LEFT, padx=(10, 0))
+        volume_label = ttk.Label(volume_row, text="0.9")
+        volume_label.pack(side=tk.LEFT, padx=(5, 0))
         
         # AI Settings
         ai_frame = ttk.LabelFrame(content_frame, text="AI Settings", padding="15")
@@ -423,9 +511,47 @@ class JARVISUnifiedWindow:
         ttk.Label(ai_row, text="AI Provider:").pack(side=tk.LEFT)
         self.ai_provider_setting_var = tk.StringVar(value="ollama")
         ai_provider_combo = ttk.Combobox(ai_row, textvariable=self.ai_provider_setting_var, 
-                                        values=["ollama", "openai", "google_gemini", "openrouter"], 
+                                        values=["ollama", "openai", "google_gemini", "openrouter", "anthropic"], 
                                         state="readonly", width=20)
         ai_provider_combo.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # AI Model
+        model_row = ttk.Frame(ai_frame)
+        model_row.pack(fill=tk.X, pady=5)
+        ttk.Label(model_row, text="AI Model:").pack(side=tk.LEFT)
+        self.ai_model_var = tk.StringVar(value="llama2")
+        model_combo = ttk.Combobox(model_row, textvariable=self.ai_model_var, 
+                                  values=["llama2", "gpt-3.5-turbo", "gpt-4", "gemini-pro"], 
+                                  state="readonly", width=20)
+        model_combo.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # API Key
+        api_key_row = ttk.Frame(ai_frame)
+        api_key_row.pack(fill=tk.X, pady=5)
+        ttk.Label(api_key_row, text="API Key:").pack(side=tk.LEFT)
+        self.api_key_var = tk.StringVar(value="")
+        api_key_entry = ttk.Entry(api_key_row, textvariable=self.api_key_var, 
+                                 show="*", width=30)
+        api_key_entry.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # Temperature
+        temp_row = ttk.Frame(ai_frame)
+        temp_row.pack(fill=tk.X, pady=5)
+        ttk.Label(temp_row, text="Temperature:").pack(side=tk.LEFT)
+        self.temperature_var = tk.DoubleVar(value=0.7)
+        temp_scale = ttk.Scale(temp_row, from_=0.0, to=2.0, variable=self.temperature_var, 
+                              orient=tk.HORIZONTAL, length=200)
+        temp_scale.pack(side=tk.LEFT, padx=(10, 0))
+        temp_label = ttk.Label(temp_row, text="0.7")
+        temp_label.pack(side=tk.LEFT, padx=(5, 0))
+        
+        # Max Tokens
+        tokens_row = ttk.Frame(ai_frame)
+        tokens_row.pack(fill=tk.X, pady=5)
+        ttk.Label(tokens_row, text="Max Tokens:").pack(side=tk.LEFT)
+        self.max_tokens_var = tk.IntVar(value=1000)
+        tokens_entry = ttk.Entry(tokens_row, textvariable=self.max_tokens_var, width=10)
+        tokens_entry.pack(side=tk.LEFT, padx=(10, 0))
         
         # Remote Settings
         remote_frame = ttk.LabelFrame(content_frame, text="Remote Control", padding="15")
@@ -435,7 +561,7 @@ class JARVISUnifiedWindow:
         host_row = ttk.Frame(remote_frame)
         host_row.pack(fill=tk.X, pady=5)
         ttk.Label(host_row, text="Host:").pack(side=tk.LEFT)
-        self.host_var = tk.StringVar(value="0.0.0.0")
+        self.host_var = tk.StringVar(value="100.109.80.8")
         host_entry = ttk.Entry(host_row, textvariable=self.host_var, width=25)
         host_entry.pack(side=tk.LEFT, padx=(10, 0))
         
@@ -447,12 +573,169 @@ class JARVISUnifiedWindow:
         port_entry = ttk.Entry(port_row, textvariable=self.port_var, width=25)
         port_entry.pack(side=tk.LEFT, padx=(10, 0))
         
+        # Authentication
+        auth_row = ttk.Frame(remote_frame)
+        auth_row.pack(fill=tk.X, pady=5)
+        self.auth_enabled_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(auth_row, text="Enable Authentication", 
+                       variable=self.auth_enabled_var).pack(side=tk.LEFT)
+        
+        # API Token
+        token_row = ttk.Frame(remote_frame)
+        token_row.pack(fill=tk.X, pady=5)
+        ttk.Label(token_row, text="API Token:").pack(side=tk.LEFT)
+        self.api_token_var = tk.StringVar(value="")
+        token_entry = ttk.Entry(token_row, textvariable=self.api_token_var, 
+                               show="*", width=30)
+        token_entry.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # Mobile App Settings
+        mobile_row = ttk.Frame(remote_frame)
+        mobile_row.pack(fill=tk.X, pady=5)
+        ttk.Label(mobile_row, text="Mobile App:").pack(side=tk.LEFT)
+        ttk.Button(mobile_row, text="Generate QR Code", 
+                  command=self.generate_qr_code).pack(side=tk.LEFT, padx=(10, 0))
+        
+        # Connection Info
+        info_row = ttk.Frame(remote_frame)
+        info_row.pack(fill=tk.X, pady=5)
+        ttk.Label(info_row, text="Connection Info:").pack(side=tk.LEFT)
+        self.connection_info_var = tk.StringVar(value="ws://localhost:8765")
+        info_entry = ttk.Entry(info_row, textvariable=self.connection_info_var, 
+                              state="readonly", width=30)
+        info_entry.pack(side=tk.LEFT, padx=(10, 0))
+        
         # Save button
         save_frame = ttk.Frame(content_frame)
         save_frame.pack(fill=tk.X, pady=20)
         
         ttk.Button(save_frame, text="💾 Save Settings", 
-                  command=self.save_settings).pack(side=tk.RIGHT)
+                  command=self.save_settings).pack(side=tk.RIGHT, padx=(5, 0))
+        ttk.Button(save_frame, text="🔄 Reset to Defaults", 
+                  command=self.reset_settings_to_defaults).pack(side=tk.RIGHT, padx=(5, 0))
+    
+    def save_settings(self):
+        """Ayarları kaydet"""
+        try:
+            # Settings'i topla
+            settings = {
+                "general": {
+                    "language": self.language_var.get(),
+                    "theme": self.theme_var.get(),
+                    "timezone": self.timezone_var.get(),
+                    "auto_start": self.auto_start_var.get(),
+                    "minimize_to_tray": self.minimize_to_tray_var.get()
+                },
+                "voice": {
+                    "sr_engine": self.sr_engine_var.get(),
+                    "tts_engine": self.tts_engine_var.get(),
+                    "voice_language": self.voice_lang_var.get(),
+                    "confidence_threshold": self.confidence_var.get(),
+                    "rate": self.rate_var.get(),
+                    "volume": self.volume_var.get()
+                },
+                "ai": {
+                    "provider": self.ai_provider_setting_var.get(),
+                    "model": self.ai_model_var.get(),
+                    "api_key": self.api_key_var.get(),
+                    "temperature": self.temperature_var.get(),
+                    "max_tokens": self.max_tokens_var.get()
+                },
+                "remote": {
+                    "host": self.host_var.get(),
+                    "port": self.port_var.get(),
+                    "auth_enabled": self.auth_enabled_var.get(),
+                    "api_token": self.api_token_var.get()
+                }
+            }
+            
+            # Settings'i kaydet
+            if self.settings_manager:
+                self.settings_manager.save_settings(settings)
+                messagebox.showinfo("Success", "Settings saved successfully!")
+            else:
+                messagebox.showerror("Error", "Settings manager not available")
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save settings: {e}")
+    
+    def reset_settings_to_defaults(self):
+        """Ayarları varsayılan değerlere sıfırla"""
+        try:
+            # Varsayılan değerleri ayarla
+            self.language_var.set("en")
+            self.theme_var.set("light")
+            self.timezone_var.set("UTC")
+            self.auto_start_var.set(True)
+            self.minimize_to_tray_var.set(True)
+            
+            self.sr_engine_var.set("google")
+            self.tts_engine_var.set("sapi5")
+            self.voice_lang_var.set("en-US")
+            self.confidence_var.set(0.7)
+            self.rate_var.set(150)
+            self.volume_var.set(0.9)
+            
+            self.ai_provider_setting_var.set("ollama")
+            self.ai_model_var.set("llama2")
+            self.api_key_var.set("")
+            self.temperature_var.set(0.7)
+            self.max_tokens_var.set(1000)
+            
+            self.host_var.set("100.109.80.8")
+            self.port_var.set("8765")
+            self.auth_enabled_var.set(False)
+            self.api_token_var.set("")
+            
+            messagebox.showinfo("Success", "Settings reset to defaults!")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to reset settings: {e}")
+    
+    def generate_qr_code(self):
+        """QR kod oluştur"""
+        try:
+            import qrcode
+            from PIL import ImageTk
+            
+            # Connection info
+            host = self.host_var.get()
+            port = self.port_var.get()
+            connection_url = f"ws://{host}:{port}"
+            
+            # QR kod oluştur
+            qr = qrcode.QRCode(version=1, box_size=10, border=5)
+            qr.add_data(connection_url)
+            qr.make(fit=True)
+            
+            # QR kod penceresi
+            qr_window = tk.Toplevel(self.root)
+            qr_window.title("JARVIS Connection QR Code")
+            qr_window.geometry("400x500")
+            
+            # QR kod görüntüsü
+            qr_image = qr.make_image(fill_color="black", back_color="white")
+            qr_image = qr_image.resize((300, 300))
+            qr_photo = ImageTk.PhotoImage(qr_image)
+            
+            qr_label = ttk.Label(qr_window, image=qr_photo)
+            qr_label.pack(pady=20)
+            
+            # Connection info
+            info_label = ttk.Label(qr_window, text=f"Connection URL:\n{connection_url}", 
+                                  font=('Arial', 10))
+            info_label.pack(pady=10)
+            
+            # Close button
+            ttk.Button(qr_window, text="Close", command=qr_window.destroy).pack(pady=10)
+            
+            # Keep reference to prevent garbage collection
+            qr_window.qr_photo = qr_photo
+            
+        except ImportError:
+            messagebox.showerror("Error", "qrcode library not available. Install with: pip install qrcode[pil]")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to generate QR code: {e}")
         
     def create_system_tab(self):
         """System sekmesini oluştur"""
@@ -725,7 +1008,7 @@ WebSocket Server: {'Active' if self.is_running else 'Inactive'}
             messagebox.showerror("Error", f"Microphone test failed: {e}")
     
     def test_voice_command(self, event=None):
-        """Sesli komut test et"""
+        """Sesli komut test et - gerçek voice command processing"""
         command = self.voice_test_input.get()
         if command:
             self.voice_response_text.delete(1.0, tk.END)
@@ -736,8 +1019,17 @@ WebSocket Server: {'Active' if self.is_running else 'Inactive'}
                 asyncio.set_event_loop(loop)
                 try:
                     if self.jarvis_core and hasattr(self.jarvis_core, 'speech_manager'):
-                        # Simulate voice command processing
-                        response = f"Voice command '{command}' processed successfully!"
+                        # Import voice command handler
+                        from gui.voice_commands import VoiceCommandHandler
+                        
+                        # Create voice command handler
+                        voice_handler = VoiceCommandHandler(self.jarvis_core)
+                        
+                        # Process the command
+                        response = loop.run_until_complete(
+                            voice_handler.process_command(command)
+                        )
+                        
                         self.root.after(0, lambda r=response: self._update_voice_response(r))
                     else:
                         self.root.after(0, lambda: self._update_voice_response("Speech manager not available"))
@@ -762,6 +1054,60 @@ WebSocket Server: {'Active' if self.is_running else 'Inactive'}
         self.voice_test_input.delete(0, tk.END)
         self.voice_test_input.insert(0, text)
     
+    def start_voice_recording(self):
+        """Sesli komut kaydetmeye başla"""
+        if not self.jarvis_core or not hasattr(self.jarvis_core, 'speech_manager'):
+            messagebox.showerror("Error", "Speech manager not available")
+            return
+        
+        try:
+            # Update UI
+            self.voice_record_btn.config(text="⏹️ Stop", command=self.stop_voice_recording)
+            self.voice_recording_status.config(text="Recording...", foreground="red")
+            
+            # Start voice recognition
+            def run_voice_recognition():
+                try:
+                    # Use speech manager to recognize speech
+                    recognized_text = self.jarvis_core.speech_manager.recognize_speech(timeout=5)
+                    
+                    if recognized_text:
+                        # Update input field with recognized text
+                        self.root.after(0, lambda: self.voice_test_input.delete(0, tk.END))
+                        self.root.after(0, lambda: self.voice_test_input.insert(0, recognized_text))
+                        
+                        # Automatically test the command
+                        self.root.after(0, self.test_voice_command)
+                    else:
+                        self.root.after(0, lambda: self.voice_recording_status.config(
+                            text="No speech detected", foreground="orange"))
+                    
+                    # Reset UI
+                    self.root.after(0, self.reset_voice_recording_ui)
+                    
+                except Exception as e:
+                    self.root.after(0, lambda: self.voice_recording_status.config(
+                        text=f"Error: {e}", foreground="red"))
+                    self.root.after(0, self.reset_voice_recording_ui)
+            
+            thread = threading.Thread(target=run_voice_recognition, daemon=True)
+            thread.start()
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Voice recording failed: {e}")
+            self.reset_voice_recording_ui()
+    
+    def stop_voice_recording(self):
+        """Sesli komut kaydını durdur"""
+        # This would be called if we had a way to stop the recognition
+        # For now, just reset the UI
+        self.reset_voice_recording_ui()
+    
+    def reset_voice_recording_ui(self):
+        """Voice recording UI'ını sıfırla"""
+        self.voice_record_btn.config(text="🎤 Record", command=self.start_voice_recording)
+        self.voice_recording_status.config(text="", foreground="red")
+    
     def test_ai_chat(self):
         """AI chat test et"""
         self.notebook.select(2)  # AI sekmesine git
@@ -777,20 +1123,37 @@ WebSocket Server: {'Active' if self.is_running else 'Inactive'}
             
             def run_async():
                 try:
-                    if self.jarvis_core and hasattr(self.jarvis_core, 'ai_manager'):
-                        # Create new event loop for this thread
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-                        try:
-                            # Gerçek AI response
-                            response = loop.run_until_complete(
-                                self.jarvis_core.ai_manager.process_query(message)
-                            )
-                            self.root.after(0, lambda r=response: self._update_ai_chat(r))
-                        finally:
-                            loop.close()
-                    else:
+                    # Check if JARVIS core is initialized
+                    if not self.jarvis_core:
+                        self.root.after(0, lambda: self._update_ai_chat("JARVIS Core not initialized"))
+                        return
+                    
+                    # Check if AI manager is available
+                    if not hasattr(self.jarvis_core, 'ai_manager') or not self.jarvis_core.ai_manager:
                         self.root.after(0, lambda: self._update_ai_chat("AI Manager not available"))
+                        return
+                    
+                    # Create new event loop for this thread
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        # Process AI query
+                        response = loop.run_until_complete(
+                            self.jarvis_core.ai_manager.process_query(message)
+                        )
+                        
+                        # Extract response text if it's an AIResponse object
+                        if hasattr(response, 'content'):
+                            response_text = response.content
+                        elif hasattr(response, 'text'):
+                            response_text = response.text
+                        else:
+                            response_text = str(response)
+                        
+                        self.root.after(0, lambda r=response_text: self._update_ai_chat(r))
+                    finally:
+                        loop.close()
+                        
                 except Exception as e:
                     error_msg = f"Error: {e}"
                     self.root.after(0, lambda: self._update_ai_chat(error_msg))
@@ -801,27 +1164,33 @@ WebSocket Server: {'Active' if self.is_running else 'Inactive'}
             self.ai_input.delete(0, tk.END)
     
     def _update_ai_chat(self, response: str):
-        """AI chat'i güncelle"""
-        # "Thinking..." satırını kaldır
-        self.ai_chat_text.delete("end-2l", "end-1l")
-        
-        # Türkçe karakter encoding düzeltmesi
+        """AI chat'i güncelle - düzeltilmiş versiyon"""
         try:
-            if isinstance(response, bytes):
-                response = response.decode('utf-8')
-            elif isinstance(response, str):
-                # Türkçe karakterler için özel handling
-                response = response.replace('ý', 'ı').replace('Ý', 'I')
-                response = response.replace('ð', 'ğ').replace('Ð', 'Ğ')
-                response = response.replace('þ', 'ş').replace('Þ', 'Ş')
-                response = response.replace('ü', 'ü').replace('Ü', 'Ü')
-                response = response.replace('ö', 'ö').replace('Ö', 'Ö')
-                response = response.replace('ç', 'ç').replace('Ç', 'Ç')
+            # "Thinking..." satırını kaldır
+            self.ai_chat_text.delete("end-2l", "end-1l")
+            
+            # Response'u güvenli şekilde işle
+            if response is None:
+                response = "No response received"
+            elif isinstance(response, bytes):
+                response = response.decode('utf-8', errors='ignore')
+            elif not isinstance(response, str):
+                response = str(response)
+            
+            # Türkçe karakter encoding düzeltmesi
+            response = response.replace('ý', 'ı').replace('Ý', 'I')
+            response = response.replace('ð', 'ğ').replace('Ð', 'Ğ')
+            response = response.replace('þ', 'ş').replace('Þ', 'Ş')
+            
+            # AI response'unu ekle
+            self.ai_chat_text.insert(tk.END, f"JARVIS: {response}\n\n")
+            self.ai_chat_text.see(tk.END)
+            
         except Exception as e:
-            logger.warning(f"Character encoding issue: {e}")
-        
-        self.ai_chat_text.insert(tk.END, f"JARVIS: {response}\n\n")
-        self.ai_chat_text.see(tk.END)
+            # Hata durumunda güvenli fallback
+            self.ai_chat_text.delete("end-2l", "end-1l")
+            self.ai_chat_text.insert(tk.END, f"JARVIS: Error processing response: {str(e)}\n\n")
+            self.ai_chat_text.see(tk.END)
     
     def _update_ai_status(self):
         """AI durumunu güncelle"""

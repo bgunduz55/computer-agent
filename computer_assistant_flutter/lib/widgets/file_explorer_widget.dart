@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_provider.dart';
-import '../models/websocket_message.dart';
+import '../models/response_models.dart';
 
 class FileExplorerWidget extends ConsumerStatefulWidget {
   const FileExplorerWidget({super.key});

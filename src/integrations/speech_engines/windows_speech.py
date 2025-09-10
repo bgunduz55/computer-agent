@@ -188,14 +188,35 @@ class SAPI5TTSEngine(BaseTextToSpeechEngine):
             self.engine.setProperty('rate', 150)
             self.engine.setProperty('volume', 0.9)
             
-            # Set voice based on language
+            # Set voice based on language with proper error handling
             voices = self.engine.getProperty('voices')
-            language_str = self.config.language.value if hasattr(self.config.language, 'value') else str(self.config.language)
-            for voice in voices:
-                if language_str in voice.languages or language_str in voice.id.lower():
-                    self.engine.setProperty('voice', voice.id)
-                    self.logger.info(f"Voice selected: {voice.id}")
-                    break
+            if voices:
+                # Get language string safely
+                language_str = None
+                if hasattr(self.config, 'language'):
+                    if hasattr(self.config.language, 'value'):
+                        language_str = self.config.language.value
+                    else:
+                        language_str = str(self.config.language)
+                else:
+                    language_str = "en"  # Default to English
+                
+                # Find matching voice
+                for voice in voices:
+                    try:
+                        # Check if voice has languages attribute and it contains our language
+                        if hasattr(voice, 'languages') and voice.languages:
+                            if language_str in voice.languages or language_str in voice.id.lower():
+                                self.engine.setProperty('voice', voice.id)
+                                self.logger.info(f"Voice selected: {voice.id}")
+                                break
+                        elif language_str in voice.id.lower():
+                            self.engine.setProperty('voice', voice.id)
+                            self.logger.info(f"Voice selected: {voice.id}")
+                            break
+                    except Exception as e:
+                        self.logger.warning(f"Error checking voice {voice.id}: {e}")
+                        continue
             
             self.logger.info("SAPI5 TTS engine initialized")
         except Exception as e:
@@ -331,8 +352,18 @@ class EdgeTTSEngine(BaseTextToSpeechEngine):
     async def _generate_speech(self, text: str, output_file: str) -> None:
         """Generate speech using Edge TTS"""
         try:
-            language_str = self.config.language.value if hasattr(self.config.language, 'value') else str(self.config.language)
-            voice = self.voice_mapping.get(language_str, "tr-TR-AhmetNeural")
+            # Get language string safely
+            language_str = None
+            if hasattr(self.config, 'language'):
+                if hasattr(self.config.language, 'value'):
+                    language_str = self.config.language.value
+                else:
+                    language_str = str(self.config.language)
+            else:
+                language_str = "en"  # Default to English
+            
+            # Map language to voice with fallback
+            voice = self.voice_mapping.get(language_str, "en-US-ChristopherNeural")
             communicate = edge_tts.Communicate(text, voice)
             await communicate.save(output_file)
         except Exception as e:

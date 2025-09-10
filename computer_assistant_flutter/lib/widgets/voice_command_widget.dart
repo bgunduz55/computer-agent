@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+// import 'package:speech_to_text/speech_to_text.dart';
+// import 'package:permission_handler/permission_handler.dart';
 import '../providers/app_provider.dart';
+import '../utils/error_handler.dart';
 
 class VoiceCommandWidget extends ConsumerStatefulWidget {
   const VoiceCommandWidget({super.key});
@@ -11,12 +14,41 @@ class VoiceCommandWidget extends ConsumerStatefulWidget {
 
 class _VoiceCommandWidgetState extends ConsumerState<VoiceCommandWidget> {
   final TextEditingController _commandController = TextEditingController();
+  // final SpeechToText _speechToText = SpeechToText();
+  
   bool _isProcessing = false;
+  bool _isListening = false;
+  bool _speechEnabled = false;
+  String _lastWords = '';
+  String _lastError = '';
+  String _lastStatus = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _initSpeech();
+    _initTts();
+  }
 
   @override
   void dispose() {
     _commandController.dispose();
+    // _speechToText.cancel();
     super.dispose();
+  }
+
+  Future<void> _initSpeech() async {
+    // Voice recognition will be enabled when dependencies are properly installed
+    // For now, use text input to send commands to JARVIS server
+    setState(() {
+      _speechEnabled = true;
+      _lastStatus = 'Text input mode - Type commands to send to JARVIS server';
+    });
+  }
+
+  Future<void> _initTts() async {
+    // TTS will be handled by the Python server
+    ErrorHandler.logInfo('VoiceCommandWidget', 'TTS handled by JARVIS server');
   }
 
   @override
@@ -26,8 +58,9 @@ class _VoiceCommandWidgetState extends ConsumerState<VoiceCommandWidget> {
 
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
           // Voice Command Header
           Card(
             child: Padding(
@@ -119,7 +152,22 @@ class _VoiceCommandWidgetState extends ConsumerState<VoiceCommandWidget> {
                           label: Text(_isProcessing ? 'Sending...' : 'Send Command'),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 8),
+                      // Voice Recognition Button
+                      ElevatedButton.icon(
+                        onPressed: _isListening ? _stopListening : _startListening,
+                        icon: Icon(_isListening ? Icons.stop : Icons.mic),
+                        label: Text(_isListening ? 'Stop' : 'Voice'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _isListening 
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).colorScheme.primary,
+                          foregroundColor: _isListening 
+                              ? Theme.of(context).colorScheme.onError
+                              : Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       OutlinedButton.icon(
                         onPressed: _isProcessing ? null : _clearCommand,
                         icon: const Icon(Icons.clear_all),
@@ -133,6 +181,169 @@ class _VoiceCommandWidgetState extends ConsumerState<VoiceCommandWidget> {
           ),
           
           const SizedBox(height: 16),
+          
+          // Voice Recognition Status
+          if (_lastStatus.isNotEmpty || _lastError.isNotEmpty) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          _isListening ? Icons.mic : Icons.mic_off,
+                          color: _isListening 
+                              ? Colors.green 
+                              : Theme.of(context).colorScheme.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Voice Recognition Status',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    if (_lastStatus.isNotEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: _isListening 
+                              ? Colors.green.withOpacity(0.1)
+                              : theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: _isListening 
+                                ? Colors.green 
+                                : theme.colorScheme.outline,
+                          ),
+                        ),
+                        child: Text(
+                          _lastStatus,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: _isListening ? Colors.green : null,
+                          ),
+                        ),
+                      ),
+                    
+                    // Server Notifications
+                    if (appState.lastVoiceResponse?.isNotEmpty == true)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.smart_toy,
+                                  size: 20,
+                                  color: theme.colorScheme.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'JARVIS Response',
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              appState.lastVoiceResponse ?? '',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (_lastError.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red),
+                        ),
+                        child: Text(
+                          _lastError,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.red,
+                          ),
+                        ),
+                      ),
+                    ],
+                    
+                    // Show last voice response
+                    if (appState.lastVoiceResponse != null && appState.lastVoiceResponse!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: theme.colorScheme.primary.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.smart_toy,
+                                  color: theme.colorScheme.primary,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'JARVIS Response',
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              appState.lastVoiceResponse!,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           
           // Command History
           if (appState.currentVoiceCommand != null) ...[
@@ -209,7 +420,8 @@ class _VoiceCommandWidgetState extends ConsumerState<VoiceCommandWidget> {
               ),
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -242,19 +454,18 @@ class _VoiceCommandWidgetState extends ConsumerState<VoiceCommandWidget> {
           SnackBar(
             content: Text('Command sent: $command'),
             duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send command: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
+      ErrorHandler.handleError(
+        context,
+        e,
+        title: 'Voice Command Error',
+        customMessage: 'Failed to send voice command: $command',
+        onRetry: () => _sendCommand(),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -268,4 +479,32 @@ class _VoiceCommandWidgetState extends ConsumerState<VoiceCommandWidget> {
     _commandController.clear();
     setState(() {});
   }
+
+  Future<void> _startListening() async {
+    if (!_speechEnabled) {
+      await _initSpeech();
+      if (!_speechEnabled) return;
+    }
+
+    setState(() {
+      _isListening = true;
+      _lastWords = '';
+      _lastError = '';
+    });
+
+    // Voice recognition will be enabled when dependencies are properly installed
+    // For now, show instruction to use text input
+    setState(() {
+      _lastStatus = 'Voice recognition will be available when dependencies are installed. Use text input below.';
+      _isListening = false;
+    });
+  }
+
+  Future<void> _stopListening() async {
+    setState(() {
+      _isListening = false;
+    });
+    // await _speechToText.stop();
+  }
+
 }

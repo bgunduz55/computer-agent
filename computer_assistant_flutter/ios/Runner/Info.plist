@@ -45,5 +45,10 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Permissions for voice recognition and TTS -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs access to microphone for voice recognition</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>This app needs access to speech recognition for voice commands</string>
 </dict>
 </plist>

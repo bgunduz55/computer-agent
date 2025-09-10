@@ -173,9 +173,9 @@ class AIIntegrationWindow:
         model_frame.pack(fill=tk.X, pady=5)
         
         ttk.Label(model_frame, text="Model:").pack(side=tk.LEFT)
-        self.model_var = tk.StringVar(value="deepseek-r1:7b")
+        self.model_var = tk.StringVar(value="gpt-oss:20b")
         model_combo = ttk.Combobox(model_frame, textvariable=self.model_var,
-                                  values=["deepseek-r1:7b", "gpt-oss:20b", "gpt-4", "gpt-3.5-turbo"],
+                                  values=["gpt-oss:20b", "gpt-4", "gpt-3.5-turbo"],
                                   state="readonly", width=30)
         model_combo.pack(side=tk.LEFT, padx=(10, 20))
         

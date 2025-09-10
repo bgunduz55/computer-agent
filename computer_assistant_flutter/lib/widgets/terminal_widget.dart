@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_provider.dart';
-import '../models/websocket_message.dart';
+import '../models/response_models.dart';
 
 class TerminalWidget extends ConsumerStatefulWidget {
   const TerminalWidget({super.key});
@@ -199,7 +199,7 @@ class _TerminalWidgetState extends ConsumerState<TerminalWidget> {
             ),
           
           // Error
-          if (response.error.isNotEmpty)
+          if (response.error?.isNotEmpty == true)
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -207,7 +207,7 @@ class _TerminalWidgetState extends ConsumerState<TerminalWidget> {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                response.error,
+                response.error ?? '',
                 style: const TextStyle(
                   color: Colors.red,
                   fontFamily: 'monospace',
