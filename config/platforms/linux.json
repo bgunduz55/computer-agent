@@ -1,0 +1,133 @@
+{
+  "platform": "linux",
+  "name": "Linux",
+  "version": "generic",
+  "voice": {
+    "recognition": {
+      "engine": "google",
+      "fallback_engine": "speech_recognition",
+      "language": "tr-TR",
+      "timeout": 5,
+      "phrase_timeout": 0.3,
+      "non_speaking_duration": 0.8
+    },
+    "synthesis": {
+      "engine": "espeak",
+      "fallback_engine": "pyttsx3",
+      "alternative_engines": ["festival", "flite"],
+      "language": "tr",
+      "voices": {
+        "tr": "tr",
+        "en": "en",
+        "en_us": "en-us",
+        "en_uk": "en-gb"
+      },
+      "rate": 150,
+      "volume": 0.9,
+      "pitch": 50
+    },
+    "wake_word": {
+      "enabled": true,
+      "words": ["hey alimer", "hey asistan", "merhaba asistan"],
+      "sensitivity": 0.5,
+      "timeout": 3
+    }
+  },
+  "system": {
+    "audio_control": {
+      "engine": "pulseaudio",
+      "fallback_engine": "alsa",
+      "alternative_engines": ["jack", "pipewire"],
+      "devices": "auto_detect"
+    },
+    "brightness_control": {
+      "engine": "xrandr",
+      "fallback_engine": "ddcutil",
+      "alternative_engines": ["light", "brightnessctl"]
+    },
+    "window_management": {
+      "engine": "wmctrl",
+      "fallback_engine": "xdotool",
+      "alternative_engines": ["xprop", "xwininfo"]
+    },
+    "process_management": {
+      "engine": "psutil",
+      "fallback_engine": "subprocess"
+    }
+  },
+  "media": {
+    "youtube": {
+      "enabled": true,
+      "browser": "default",
+      "fullscreen": true
+    },
+    "audio_playback": {
+      "engine": "pulseaudio",
+      "fallback_engine": "pygame"
+    }
+  },
+  "features": {
+    "windows_speech": false,
+    "sapi5_tts": false,
+    "com_interface": false,
+    "windows_api": false,
+    "pycaw_audio": false,
+    "screen_brightness_control": false,
+    "pulseaudio": true,
+    "espeak": true,
+    "festival": true,
+    "alsa": true,
+    "xrandr": true,
+    "wmctrl": true
+  },
+  "dependencies": {
+    "system_packages": [
+      "espeak",
+      "espeak-data",
+      "pulseaudio",
+      "pulseaudio-utils",
+      "xrandr",
+      "wmctrl",
+      "xdotool"
+    ],
+    "python_packages": [
+      "pyttsx3",
+      "speech_recognition",
+      "pyaudio"
+    ],
+    "optional": [
+      "festival",
+      "festvox-kallpc16k",
+      "flite",
+      "ddcutil",
+      "light",
+      "brightnessctl"
+    ]
+  },
+  "paths": {
+    "temp_dir": "/tmp/jarvis",
+    "data_dir": "~/.local/share/jarvis",
+    "logs_dir": "~/.local/share/jarvis/logs",
+    "cache_dir": "~/.cache/jarvis",
+    "config_dir": "~/.config/jarvis"
+  },
+  "desktop": {
+    "enabled": true,
+    "desktop_file": "~/.local/share/applications/jarvis.desktop",
+    "autostart": "~/.config/autostart/jarvis.desktop"
+  },
+  "services": {
+    "systemd_service": {
+      "enabled": true,
+      "name": "jarvis-assistant",
+      "description": "JARVIS Computer Assistant",
+      "user_service": true
+    }
+  },
+  "environment": {
+    "display": "$DISPLAY",
+    "wayland": "$WAYLAND_DISPLAY",
+    "x11": "$DISPLAY",
+    "pulseaudio": "$PULSE_RUNTIME_PATH"
+  }
+}
