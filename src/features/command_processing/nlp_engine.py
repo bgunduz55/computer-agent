@@ -185,7 +185,9 @@ class NLPEngine:
                 'press_key': [
                     r'(?:bas|press)\s+(\w+)',
                     r'(?:gir|enter)\s+(\w+)',
-                    r'(\w+)\s+(?:tuşu|key)'
+                    r'(\w+)\s+(?:tuşu|key)',
+                    r'key\s+(\w+)',  # "key enter", "key space" gibi komutlar için
+                    r'(\w+)\s+key'   # "enter key", "space key" gibi komutlar için
                 ],
                 'key_combination': [
                     r'(?:ctrl|control)\s*\+\s*(\w+)',
@@ -333,7 +335,11 @@ class NLPEngine:
     
     def _process_typing_command(self, text: str, entities: Dict[str, List[str]]) -> Tuple[str, Dict[str, Any]]:
         """Process typing commands"""
-        # Check for text to type
+        # Check for "yaz" command - special case (only if it's just "yaz")
+        if text.strip().lower() == 'yaz':
+            return "type_text", {"text": "yaz"}
+        
+        # Check for text to type after "yaz" or "type"
         if 'yaz' in text or 'type' in text:
             # Extract text after "yaz" or "type"
             match = re.search(r'(?:yaz|type|write)\s+(.+)', text)
@@ -355,6 +361,11 @@ class NLPEngine:
         for key, keywords in special_keys.items():
             if any(kw in text for kw in keywords):
                 return "press_key", {"key": key}
+        
+        # Check for "key" commands like "key enter", "key space"
+        key_match = re.search(r'key\s+(\w+)', text)
+        if key_match:
+            return "press_key", {"key": key_match.group(1)}
         
         # Check for key combinations
         if 'ctrl' in text and '+' in text:

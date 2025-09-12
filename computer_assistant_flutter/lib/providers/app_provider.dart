@@ -4,7 +4,6 @@ import '../shared/websocket_protocol.dart';
 import '../services/websocket_service.dart';
 import '../utils/error_handler.dart';
 import '../models/response_models.dart';
-import 'settings_provider.dart';
 
 // WebSocket Service Provider
 final webSocketServiceProvider = Provider<WebSocketService>((ref) {
@@ -24,10 +23,9 @@ final authenticationStatusProvider = StateProvider<bool>((ref) {
   return false;
 });
 
-// Server URL Provider - now uses settings
+// Server URL Provider - hardcoded for now
 final serverUrlProvider = Provider<String>((ref) {
-  final settings = ref.watch(settingsProvider);
-  return settings.serverUrl;
+  return 'ws://100.109.80.8:8765';
 });
 
 // Auth Token Provider

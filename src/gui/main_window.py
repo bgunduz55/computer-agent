@@ -14,6 +14,8 @@ import sys
 import json
 from datetime import datetime
 import webbrowser
+import pystray
+from PIL import Image, ImageDraw
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -40,9 +42,11 @@ class JARVISMainWindow:
         self.voice_window = None
         self.ai_window = None
         self.terminal_window = None
+        self.tray_icon = None
         self.setup_window()
         self.create_widgets()
         self.initialize_jarvis()
+        self.setup_system_tray()
         
     def setup_window(self):
         """Pencere ayarlarını yap"""
@@ -407,12 +411,16 @@ Available Voice Commands:
             # Voice handler'ı initialize et
             self.voice_handler = VoiceCommandHandler(self.jarvis_core)
             
-            # JARVIS'i initialize et
+            # JARVIS'i initialize et ve başlat
             def init_async():
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 loop.run_until_complete(self.jarvis_core.initialize())
+                # WebSocket server'ın çalışması için start() çağır
+                loop.run_until_complete(self.jarvis_core.start())
+                self.is_running = True
                 self.root.after(0, self.update_status)
+                self.add_log("JARVIS initialized and started successfully")
             
             thread = threading.Thread(target=init_async, daemon=True)
             thread.start()
@@ -759,11 +767,106 @@ For more information, visit the documentation or check the voice commands tab.
         """Debug modunu aç/kapat"""
         messagebox.showinfo("Info", "Debug mode toggle will be implemented")
     
+    def add_log(self, message):
+        """Log mesajı ekle"""
+        if self.log_text:
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            log_message = f"[{timestamp}] {message}\n"
+            
+            self.log_text.config(state=tk.NORMAL)
+            self.log_text.insert(tk.END, log_message)
+            self.log_text.see(tk.END)
+            self.log_text.config(state=tk.DISABLED)
+    
     def on_closing(self):
-        """Pencere kapatılırken"""
-        if messagebox.askokcancel("Quit", "Do you want to quit JARVIS?"):
+        """Pencere kapatılırken - sistem tepsisine geç"""
+        self.hide_to_tray()
+    
+    def setup_system_tray(self):
+        """Sistem tepsisini ayarla"""
+        try:
+            # Tray icon oluştur
+            image = self.create_tray_icon()
+            menu = pystray.Menu(
+                pystray.MenuItem("Show JARVIS", self.show_from_tray),
+                pystray.MenuItem("Settings", self.open_settings_tray),
+                pystray.MenuItem("Voice Commands", self.open_voice_commands_tray),
+                pystray.MenuItem("AI Integration", self.open_ai_integration_tray),
+                pystray.MenuItem("Terminal", self.open_terminal_tray),
+                pystray.Menu.SEPARATOR,
+                pystray.MenuItem("Quit", self.quit_application)
+            )
+            
+            self.tray_icon = pystray.Icon("JARVIS", image, "JARVIS Computer Assistant", menu)
+            
+        except Exception as e:
+            logger.error(f"Failed to setup system tray: {e}")
+    
+    def create_tray_icon(self):
+        """Sistem tepsi ikonu oluştur"""
+        # Basit bir robot ikonu oluştur
+        width = 64
+        height = 64
+        image = Image.new('RGB', (width, height), color='white')
+        draw = ImageDraw.Draw(image)
+        
+        # Robot kafası çiz
+        draw.ellipse([10, 10, 54, 54], fill='blue', outline='darkblue', width=2)
+        
+        # Gözler
+        draw.ellipse([20, 20, 28, 28], fill='white')
+        draw.ellipse([36, 20, 44, 28], fill='white')
+        draw.ellipse([22, 22, 26, 26], fill='black')
+        draw.ellipse([38, 22, 42, 26], fill='black')
+        
+        # Ağız
+        draw.arc([25, 35, 39, 45], 0, 180, fill='black', width=2)
+        
+        return image
+    
+    def hide_to_tray(self):
+        """Pencereyi gizle ve sistem tepsisine geç"""
+        self.root.withdraw()  # Pencereyi gizle
+        if self.tray_icon:
+            self.tray_icon.run_detached()  # Tray icon'u başlat
+        self.add_log("JARVIS minimized to system tray - WebSocket server continues running")
+    
+    def show_from_tray(self, icon=None, item=None):
+        """Sistem tepsisinden pencereyi göster"""
+        self.root.deiconify()  # Pencereyi göster
+        self.root.lift()  # Pencereyi öne getir
+        self.root.focus_force()  # Fokusu al
+        if self.tray_icon:
+            self.tray_icon.stop()  # Tray icon'u durdur
+        self.add_log("JARVIS restored from system tray")
+        # Status'u güncelle
+        self.update_status()
+    
+    def open_settings_tray(self, icon=None, item=None):
+        """Ayarları aç (tray'den)"""
+        self.open_settings()
+    
+    def open_voice_commands_tray(self, icon=None, item=None):
+        """Ses komutlarını aç (tray'den)"""
+        self.open_voice_commands()
+    
+    def open_ai_integration_tray(self, icon=None, item=None):
+        """AI entegrasyonunu aç (tray'den)"""
+        self.open_ai_integration()
+    
+    def open_terminal_tray(self, icon=None, item=None):
+        """Terminal'i aç (tray'den)"""
+        self.open_terminal()
+    
+    def quit_application(self, icon=None, item=None):
+        """Uygulamayı tamamen kapat"""
+        # Onay iste
+        if messagebox.askokcancel("Quit JARVIS", "Are you sure you want to quit JARVIS? This will stop the WebSocket server."):
             if self.is_running:
                 self.stop_jarvis()
+            if self.tray_icon:
+                self.tray_icon.stop()
+            self.root.quit()
             self.root.destroy()
     
     def run(self):

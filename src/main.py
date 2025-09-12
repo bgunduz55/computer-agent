@@ -229,8 +229,9 @@ async def main():
     # Handle GUI mode
     if args.gui:
         try:
-            from gui.unified_main_window import main as gui_main
-            gui_main()
+            from gui.main_window import JARVISMainWindow
+            app = JARVISMainWindow()
+            app.run()
             return 0
         except Exception as e:
             logger.error(f"Failed to start GUI: {e}")

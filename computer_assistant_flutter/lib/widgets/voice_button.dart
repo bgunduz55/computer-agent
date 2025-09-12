@@ -31,6 +31,7 @@ class _VoiceButtonState extends State<VoiceButton>
   bool _isListening = false;
   bool _isAvailable = false;
   String _lastWords = '';
+  bool _isProcessing = false; // Çift gönderimi önlemek için
 
   @override
   void initState() {
@@ -121,43 +122,71 @@ class _VoiceButtonState extends State<VoiceButton>
   }
 
   Future<void> _startListening() async {
-    if (!_isAvailable || !widget.enabled) return;
+    if (!_isAvailable || !widget.enabled || _isProcessing) return;
 
-    await _speech.listen(
-      onResult: (result) {
-        setState(() {
-          _lastWords = result.recognizedWords;
-        });
-        
-        // Eğer sonuç kesin ise (final result), hemen gönder
-        if (result.finalResult) {
-          final recognizedText = result.recognizedWords.trim();
-          if (recognizedText.isNotEmpty) {
-            widget.onCommandRecognized(recognizedText);
-            setState(() {
-              _lastWords = '';
-            });
+    setState(() {
+      _isProcessing = true;
+      _lastWords = '';
+    });
+
+    try {
+      await _speech.listen(
+        onResult: (result) {
+          // Hem partial hem de final results için UI güncelle
+          setState(() {
+            _lastWords = result.recognizedWords;
+          });
+          
+          // Eğer final result ise hemen gönder
+          if (result.finalResult) {
+            final recognizedText = result.recognizedWords.trim();
+            if (recognizedText.isNotEmpty) {
+              widget.onCommandRecognized(recognizedText);
+              setState(() {
+                _lastWords = '';
+                _isProcessing = false;
+                _isListening = false;
+              });
+            }
           }
-        }
-      },
-      localeId: 'tr_TR', // Türkçe
-      listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 3),
-      partialResults: true,
-      cancelOnError: true,
-      listenMode: ListenMode.dictation, // Dictation mode daha iyi çalışır
-    );
+        },
+        localeId: 'tr_TR', // Türkçe
+        listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(seconds: 5), // Daha uzun pause süresi
+        partialResults: true,
+        cancelOnError: true,
+        listenMode: ListenMode.dictation, // Dictation mode daha iyi çalışır
+      );
+      
+      // Dinleme başladıktan sonra state'i güncelle
+      setState(() {
+        _isListening = true;
+      });
+    } catch (e) {
+      // Hata durumunda state'i sıfırla
+      setState(() {
+        _isProcessing = false;
+        _isListening = false;
+        _lastWords = '';
+      });
+    }
   }
 
   Future<void> _stopListening() async {
-    await _speech.stop();
+    if (!_isProcessing) return;
     
-    // Son tanınan metni al ve gönder
-    final recognizedText = _lastWords.trim();
-    if (recognizedText.isNotEmpty) {
-      widget.onCommandRecognized(recognizedText);
+    try {
+      await _speech.stop();
+      
+      // Final result zaten onResult callback'inde gönderildiği için
+      // burada tekrar göndermeye gerek yok
+    } catch (e) {
+      // Hata durumunda da state'i sıfırla
+    } finally {
       setState(() {
         _lastWords = '';
+        _isProcessing = false;
+        _isListening = false;
       });
     }
   }
@@ -169,18 +198,22 @@ class _VoiceButtonState extends State<VoiceButton>
         // Ana ses butonu
         GestureDetector(
           onTapDown: (_) {
-            if (widget.enabled && _isAvailable) {
+            if (widget.enabled && _isAvailable && !_isProcessing) {
               _scaleController.forward();
               _startListening();
             }
           },
           onTapUp: (_) {
-            _scaleController.reverse();
-            _stopListening();
+            if (_isProcessing) {
+              _scaleController.reverse();
+              _stopListening();
+            }
           },
           onTapCancel: () {
-            _scaleController.reverse();
-            _stopListening();
+            if (_isProcessing) {
+              _scaleController.reverse();
+              _stopListening();
+            }
           },
           child: AnimatedBuilder(
             animation: Listenable.merge([_pulseAnimation, _scaleAnimation]),
@@ -224,8 +257,8 @@ class _VoiceButtonState extends State<VoiceButton>
         
         // Durum metni
         Text(
-          _isListening
-              ? 'Dinleniyor... Bırakın'
+          _isProcessing
+              ? (_isListening ? 'Dinleniyor... Bırakın' : 'İşleniyor...')
               : _isAvailable
                   ? 'Basılı tutun ve konuşun'
                   : 'Ses tanıma kullanılamıyor',
@@ -237,40 +270,49 @@ class _VoiceButtonState extends State<VoiceButton>
           textAlign: TextAlign.center,
         ),
         
-        // Tanınan metin
-        if (_lastWords.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.shade200),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'Tanınan komut:',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.blue.shade800,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _lastWords,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+        // Tanınan metin - Sabit boyutlu alan
+        const SizedBox(height: 16),
+        Container(
+          height: 80, // Sabit yükseklik
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: _lastWords.isNotEmpty ? Colors.blue.shade50 : Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _lastWords.isNotEmpty ? Colors.blue.shade200 : Colors.grey.shade200,
             ),
           ),
-        ],
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                _lastWords.isNotEmpty ? 'Tanınan komut:' : 'Komut bekleniyor...',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: _lastWords.isNotEmpty ? Colors.blue.shade800 : Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: Center(
+                  child: Text(
+                    _lastWords.isNotEmpty ? _lastWords : '',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         
         // Kullanılabilirlik durumu
         if (!_isAvailable) ...[

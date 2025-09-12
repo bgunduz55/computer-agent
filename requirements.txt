@@ -45,4 +45,7 @@ librosa>=0.10.0
 # Security
 cryptography>=41.0.0
 PyJWT>=2.8.0
-bcrypt>=4.1.0 
+bcrypt>=4.1.0
+
+# System Tray
+pystray>=0.19.4 
