@@ -71,11 +71,13 @@ class WebSocketServer:
         self.ai_manager = None
         self.rag_system = None
         self.speech_manager = None
+        self.command_handler = None
         
         # Message handlers
         self.message_handlers = {
             MessageType.AUTH_REQUEST: self._handle_auth_request,
             MessageType.VOICE_COMMAND: self._handle_voice_command,
+            MessageType.COMMAND: self._handle_command,
             MessageType.TERMINAL_COMMAND: self._handle_terminal_command,
             MessageType.AI_REQUEST: self._handle_ai_request,
             MessageType.SYSTEM_CONTROL: self._handle_system_control,
@@ -89,6 +91,11 @@ class WebSocketServer:
         }
         
         self.logger = logging.getLogger(__name__)
+    
+    def register_handler(self, message_type: MessageType, handler) -> None:
+        """Register a message handler for a specific message type"""
+        self.message_handlers[message_type] = handler
+        self.logger.info(f"Registered handler for message type: {message_type}")
     
     async def initialize(self) -> bool:
         """Initialize WebSocket server"""
@@ -429,9 +436,9 @@ class WebSocketServer:
         
         # Send processing notification to client
         processing_notification = MessageBuilder.create_notification(
-            message,
             "Processing voice command...",
-            "info"
+            "info",
+            client_id
         )
         await self._send_message(client_id, processing_notification)
         
@@ -466,9 +473,9 @@ class WebSocketServer:
                 
                 # Send completion notification
                 completion_notification = MessageBuilder.create_notification(
-                    message,
                     f"Voice command '{command}' completed successfully",
-                    "success"
+                    "success",
+                    client_id
                 )
                 await self._send_message(client_id, completion_notification)
             else:
@@ -483,9 +490,72 @@ class WebSocketServer:
             
             # Send error notification
             error_notification = MessageBuilder.create_notification(
-                message,
                 f"Error processing voice command: {str(e)}",
-                "error"
+                "error",
+                client_id
+            )
+            await self._send_message(client_id, error_notification)
+    
+    async def _handle_command(self, message: WebSocketMessage) -> None:
+        """Handle command from client"""
+        client_id = message.client_id
+        command = message.data.get("command", "")
+        
+        self.logger.info(f"Processing command from client {client_id}: '{command}'")
+        
+        # Send processing notification to client
+        processing_notification = MessageBuilder.create_notification(
+            "Processing command...",
+            "info",
+            client_id
+        )
+        await self._send_message(client_id, processing_notification)
+        
+        try:
+            # Process command through command handler if available
+            if self.command_handler:
+                try:
+                    # Use command handler to process the command
+                    result = await self.command_handler.process_command(message)
+                    self.logger.info(f"Command handler processed command '{command}' -> '{result}'")
+                except Exception as e:
+                    self.logger.warning(f"Command handler processing failed: {e}")
+                    result = f"Command processed: {command} (Command handler unavailable)"
+            else:
+                result = f"Command received: {command}"
+            
+            # Create success response
+            response = MessageBuilder.create_success_response(
+                message,
+                {
+                    "command": command,
+                    "result": result,
+                    "success": True
+                }
+            )
+            
+            if self.config.logging_enabled and self.config.log_responses:
+                self.logger.info(f"Sending response to client {client_id}: {result[:100]}...")
+            await self._send_message(client_id, response)
+            
+            # Send completion notification
+            completion_notification = MessageBuilder.create_notification(
+                f"Command '{command}' completed successfully",
+                "success",
+                client_id
+            )
+            await self._send_message(client_id, completion_notification)
+        
+        except Exception as e:
+            self.logger.error(f"Error handling command from {client_id}: {e}")
+            error_response = MessageBuilder.create_error_response(message, f"Command error: {str(e)}")
+            await self._send_message(client_id, error_response)
+            
+            # Send error notification
+            error_notification = MessageBuilder.create_notification(
+                f"Error processing command: {str(e)}",
+                "error",
+                client_id
             )
             await self._send_message(client_id, error_notification)
     

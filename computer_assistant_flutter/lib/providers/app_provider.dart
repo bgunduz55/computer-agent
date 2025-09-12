@@ -78,6 +78,7 @@ class AppState {
   final String? currentVoiceCommand;
   final String? lastVoiceResponse;
   final bool isProcessing;
+  final bool isListening;
   final List<TerminalResponse> terminalOutput;
   final AIResponse? aiResponse;
   final SystemInfo? systemInfo;
@@ -94,6 +95,7 @@ class AppState {
     this.currentVoiceCommand,
     this.lastVoiceResponse,
     this.isProcessing = false,
+    this.isListening = false,
     this.terminalOutput = const [],
     this.aiResponse,
     this.systemInfo,
@@ -111,6 +113,7 @@ class AppState {
     String? currentVoiceCommand,
     String? lastVoiceResponse,
     bool? isProcessing,
+    bool? isListening,
     List<TerminalResponse>? terminalOutput,
     AIResponse? aiResponse,
     SystemInfo? systemInfo,
@@ -127,6 +130,7 @@ class AppState {
       currentVoiceCommand: currentVoiceCommand ?? this.currentVoiceCommand,
       lastVoiceResponse: lastVoiceResponse ?? this.lastVoiceResponse,
       isProcessing: isProcessing ?? this.isProcessing,
+      isListening: isListening ?? this.isListening,
       terminalOutput: terminalOutput ?? this.terminalOutput,
       aiResponse: aiResponse ?? this.aiResponse,
       systemInfo: systemInfo ?? this.systemInfo,

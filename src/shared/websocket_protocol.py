@@ -33,6 +33,10 @@ class MessageType(Enum):
     VOICE_RESPONSE = "voiceResponse"
     VOICE_STATUS = "voiceStatus"
     
+    # Command Processing
+    COMMAND = "command"
+    COMMAND_RESPONSE = "commandResponse"
+    
     # Terminal Control
     TERMINAL_COMMAND = "terminalCommand"
     TERMINAL_RESPONSE = "terminalResponse"
@@ -158,6 +162,7 @@ class WebSocketMessage:
         response_map = {
             MessageType.AUTH_REQUEST: MessageType.AUTH_RESPONSE,
             MessageType.VOICE_COMMAND: MessageType.VOICE_RESPONSE,
+            MessageType.COMMAND: MessageType.COMMAND_RESPONSE,
             MessageType.AI_REQUEST: MessageType.AI_RESPONSE,
             MessageType.SYSTEM_CONTROL: MessageType.SYSTEM_RESPONSE,
             MessageType.FILE_LIST: MessageType.FILE_RESPONSE,
@@ -187,6 +192,7 @@ class WebSocketMessage:
         return self.type in [
             MessageType.AUTH_REQUEST,
             MessageType.VOICE_COMMAND,
+            MessageType.COMMAND,
             MessageType.AI_REQUEST,
             MessageType.SYSTEM_CONTROL,
             MessageType.FILE_LIST,
@@ -205,6 +211,7 @@ class WebSocketMessage:
         return self.type in [
             MessageType.AUTH_RESPONSE,
             MessageType.VOICE_RESPONSE,
+            MessageType.COMMAND_RESPONSE,
             MessageType.AI_RESPONSE,
             MessageType.SYSTEM_RESPONSE,
             MessageType.FILE_RESPONSE,

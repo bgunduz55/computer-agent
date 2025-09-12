@@ -27,6 +27,7 @@ from features.remote_control import get_websocket_server, get_remote_controller
 from features.system_info import get_system_info_manager
 from features.application_control import get_application_manager
 from features.settings import get_settings_manager, SettingCategory
+from features.command_processing import NLPEngine, CommandExecutor, WebSocketCommandHandler
 from plugins import get_plugin_manager
 from .performance_manager import get_performance_manager
 from .security_manager import get_security_manager
@@ -48,6 +49,9 @@ class JARVISCore:
         self.terminal_manager = None
         self.package_manager = None
         self.websocket_server = None
+        self.nlp_engine = None
+        self.command_executor = None
+        self.websocket_command_handler = None
         self.remote_controller = None
         self.settings_manager = None
         self.system_info_manager = None
@@ -182,6 +186,14 @@ class JARVISCore:
                 return False
             logger.info("Analytics manager initialized")
             
+            # Initialize command processing system
+            self.nlp_engine = NLPEngine()
+            self.command_executor = CommandExecutor()
+            if not self.command_executor.initialize():
+                logger.error("Failed to initialize command executor")
+                return False
+            logger.info("Command processing system initialized")
+            
             # Initialize terminal manager
             self.terminal_manager = get_terminal_manager()
             if not self.terminal_manager.initialize():
@@ -209,6 +221,16 @@ class JARVISCore:
                     logger.error("Failed to initialize remote controller")
                     return False
                 logger.info("Remote controller initialized")
+            
+                # Initialize WebSocket command handler
+                if self.websocket_server:
+                    self.websocket_command_handler = WebSocketCommandHandler(self.websocket_server)
+                    if not await self.websocket_command_handler.initialize():
+                        logger.error("Failed to initialize WebSocket command handler")
+                        return False
+                    # Set command handler in WebSocket server
+                    self.websocket_server.command_handler = self.websocket_command_handler
+                    logger.info("WebSocket command handler initialized")
             
             # Setup event handlers
             self._setup_event_handlers()
@@ -401,6 +423,18 @@ class JARVISCore:
                 except Exception as e:
                     logger.warning(f"Error shutting down analytics manager: {e}")
             
+            if self.websocket_command_handler:
+                try:
+                    await self.websocket_command_handler.cleanup()
+                except Exception as e:
+                    logger.warning(f"Error cleaning up WebSocket command handler: {e}")
+            
+            if self.command_executor:
+                try:
+                    self.command_executor.cleanup()
+                except Exception as e:
+                    logger.warning(f"Error cleaning up command executor: {e}")
+            
             if self.terminal_manager:
                 try:
                     self.terminal_manager.cleanup()
@@ -476,7 +510,7 @@ class JARVISCore:
             return False
     
     async def process_voice_command(self, command: str) -> Optional[str]:
-        """Process voice command through plugins and AI"""
+        """Process voice command through intelligent command processing system"""
         start_time = time.time()
         try:
             if self.is_processing:
@@ -500,17 +534,47 @@ class JARVISCore:
                     "voice_user"
                 )
             
-            # First, try to handle command through plugins
+            # Use intelligent command processing system
+            if self.nlp_engine and self.command_executor:
+                # Process command through NLP engine
+                processed_command = self.nlp_engine.process_command(command)
+                
+                # Execute command
+                result = await self.command_executor.execute_command(processed_command)
+                
+                if result.success:
+                    response_message = result.message
+                    if result.data:
+                        response_message += f"\nData: {result.data}"
+                    
+                    # Speak the response
+                    if self.speech_manager:
+                        self.speech_manager.speak_text(response_message)
+                    
+                    return response_message
+                else:
+                    error_message = f"Command failed: {result.message}"
+                    if result.error:
+                        error_message += f"\nError: {result.error}"
+                    
+                    # Speak the error
+                    if self.speech_manager:
+                        self.speech_manager.speak_text(error_message)
+                    
+                    return error_message
+            
+            # Fallback to plugin system if command processing is not available
             plugin_response = None
             if self.plugin_manager:
                 plugin_response = await self.plugin_manager.handle_voice_command(command)
             
             if plugin_response:
                 logger.info(f"Plugin Response: {plugin_response}")
-                self.speech_manager.speak_text(plugin_response)
+                if self.speech_manager:
+                    self.speech_manager.speak_text(plugin_response)
                 return plugin_response
             
-            # If no plugin handled it, use AI
+            # Final fallback to AI
             ai_response = await self.ai_manager.generate_response(command)
             
             if not ai_response:
@@ -521,13 +585,18 @@ class JARVISCore:
                 # Execute command
                 result = await self.terminal_manager.execute_command(ai_response.content)
                 if result:
-                    return f"Executed: {ai_response.content}\nResult: {result}"
+                    response = f"Executed: {ai_response.content}\nResult: {result}"
                 else:
-                    return f"Failed to execute: {ai_response.content}"
+                    response = f"Executed: {ai_response.content}"
             else:
-                # Speak response
-                self.speech_manager.speak_text(ai_response.content)
-                return ai_response.content
+                # Return AI response directly
+                response = ai_response.content
+            
+            # Speak the response
+            if self.speech_manager:
+                self.speech_manager.speak_text(response)
+            
+            return response
             
         except Exception as e:
             logger.error(f"Failed to process voice command: {e}")
@@ -752,16 +821,19 @@ class JARVISCore:
                 "speech_manager": self.speech_manager is not None,
                 "ai_manager": self.ai_manager is not None,
                 "rag_system": self.rag_system is not None,
-            "system_info_manager": self.system_info_manager is not None,
-            "application_manager": self.application_manager is not None,
-            "plugin_manager": self.plugin_manager is not None,
-            "performance_manager": self.performance_manager is not None,
-            "security_manager": self.security_manager is not None,
-            "analytics_manager": self.analytics_manager is not None,
+                "system_info_manager": self.system_info_manager is not None,
+                "application_manager": self.application_manager is not None,
+                "plugin_manager": self.plugin_manager is not None,
+                "performance_manager": self.performance_manager is not None,
+                "security_manager": self.security_manager is not None,
+                "analytics_manager": self.analytics_manager is not None,
                 "terminal_manager": self.terminal_manager is not None,
                 "package_manager": self.package_manager is not None,
                 "websocket_server": self.websocket_server is not None,
-                "remote_controller": self.remote_controller is not None
+                "remote_controller": self.remote_controller is not None,
+                "nlp_engine": self.nlp_engine is not None,
+                "command_executor": self.command_executor is not None,
+                "websocket_command_handler": self.websocket_command_handler is not None
             }
         }
     

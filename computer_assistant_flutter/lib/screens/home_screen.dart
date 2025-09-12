@@ -10,6 +10,7 @@ import '../widgets/system_info_widget.dart';
 import '../widgets/file_explorer_widget.dart';
 import '../widgets/screenshot_widget.dart';
 import '../widgets/rag_widget.dart';
+import 'command_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -26,7 +27,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 7, vsync: this);
+    _tabController = TabController(length: 8, vsync: this);
   }
 
   @override
@@ -85,6 +86,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               height: 60,
             ),
             Tab(
+              icon: Icon(Icons.smart_toy_rounded),
+              text: 'Commands',
+              height: 60,
+            ),
+            Tab(
               icon: Icon(Icons.terminal_rounded),
               text: 'Terminal',
               height: 60,
@@ -121,6 +127,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         controller: _tabController,
         children: [
           const VoiceCommandWidget(),
+          const CommandScreen(),
           const TerminalWidget(),
           const AIChatWidget(),
           const RAGWidget(),
