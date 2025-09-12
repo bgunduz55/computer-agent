@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'screens/home_screen.dart';
+import 'screens/refactored_home_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: MyApp()));
@@ -134,7 +135,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
       themeMode: ThemeMode.system,
-      home: const HomeScreen(),
+      home: const RefactoredHomeScreen(),
       debugShowCheckedModeBanner: false,
     );
   }

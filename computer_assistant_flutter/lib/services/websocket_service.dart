@@ -280,6 +280,18 @@ class WebSocketService {
     await sendMessage(message);
   }
 
+  /// Send command
+  Future<void> sendCommand(String command) async {
+    final message = WebSocketMessage(
+      type: MessageType.command,
+      data: {'command': command},
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(message);
+  }
+
   /// Send terminal command
   Future<void> sendTerminalCommand(String command, {String? terminalType, String? workingDirectory}) async {
     final message = WebSocketMessage(

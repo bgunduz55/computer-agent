@@ -22,6 +22,10 @@ enum MessageType {
   voiceResponse,
   voiceStatus,
   
+  // Command Processing
+  command,
+  commandResponse,
+  
   // AI Integration
   aiRequest,
   aiResponse,
@@ -138,6 +142,7 @@ class WebSocketMessage {
     return [
       MessageType.authRequest,
       MessageType.voiceCommand,
+      MessageType.command,
       MessageType.aiRequest,
       MessageType.systemControl,
       MessageType.fileList,
@@ -156,6 +161,7 @@ class WebSocketMessage {
     return [
       MessageType.authResponse,
       MessageType.voiceResponse,
+      MessageType.commandResponse,
       MessageType.aiResponse,
       MessageType.systemResponse,
       MessageType.fileResponse,
@@ -189,6 +195,16 @@ class MessageBuilder {
   static WebSocketMessage createVoiceCommand(String command, {String? clientId}) {
     return WebSocketMessage(
       type: MessageType.voiceCommand,
+      data: {'command': command},
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateId(),
+      clientId: clientId,
+    );
+  }
+
+  static WebSocketMessage createCommand(String command, {String? clientId}) {
+    return WebSocketMessage(
+      type: MessageType.command,
       data: {'command': command},
       timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
       messageId: _generateId(),
@@ -269,6 +285,8 @@ class MessageBuilder {
         return MessageType.authResponse;
       case MessageType.voiceCommand:
         return MessageType.voiceResponse;
+      case MessageType.command:
+        return MessageType.commandResponse;
       case MessageType.aiRequest:
         return MessageType.aiResponse;
       case MessageType.systemControl:

@@ -188,6 +188,24 @@ class AppStateNotifier extends StateNotifier<AppState> {
           }
           break;
           
+        case MessageType.commandResponse:
+          final command = message.data['command'] as String? ?? '';
+          final response = message.data['result'] as String? ?? '';
+          final success = message.data['success'] as bool? ?? true;
+          
+          state = state.copyWith(
+            currentVoiceCommand: command,
+            lastVoiceResponse: response,
+            isProcessing: false,
+          );
+          
+          if (success) {
+            _logger.i('Command processed successfully: $command -> $response');
+          } else {
+            _logger.w('Command failed: $command');
+          }
+          break;
+          
         case MessageType.notification:
           final notification = message.data['message'] as String? ?? '';
           final type = message.data['type'] as String? ?? 'info';
@@ -289,6 +307,10 @@ class AppStateNotifier extends StateNotifier<AppState> {
   // Command methods
   Future<void> sendVoiceCommand(String command) async {
     await _webSocketService.sendVoiceCommand(command);
+  }
+
+  Future<void> sendCommand(String command) async {
+    await _webSocketService.sendCommand(command);
   }
 
   Future<void> sendTerminalCommand(String command) async {
