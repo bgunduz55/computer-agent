@@ -300,33 +300,42 @@ class IntelligentCommandProcessor:
         """Create AI prompt for command processing"""
         capabilities = context.get("capabilities", [])
         system_state = context.get("system_state", {})
-        available_commands = context.get("available_commands", [])
         
         # Detect language
         is_turkish = any(char in command for char in 'çğıöşüÇĞIÖŞÜ')
         language = "Turkish" if is_turkish else "English"
         
-        prompt = f"""
-You are JARVIS, an intelligent computer assistant. The user command is in {language}:
+        # Create simplified capability list
+        capability_names = [cap.get('name', '') for cap in capabilities if cap.get('name')]
+        capability_list = ', '.join(capability_names[:20])  # Limit to first 20
+        
+        prompt = f"""You are JARVIS - an intelligent computer assistant. User command in {language}: "{command}"
 
-"{command}"
+Available capabilities: {capability_list}
+System: {system_state.get('platform', 'windows')}
 
-Available capabilities:
-{self._format_capabilities(capabilities)}
+SMART RULES - Choose the BEST capability for each task:
+- YouTube music/video: use "youtube_search" with {{"query": "search term"}}
+- Google search: use "web_search" with {{"query": "search term"}}  
+- Open website: use "web_open_url" with {{"url": "https://example.com"}}
+- Open app: use "app_open" with {{"application_name": "App Name"}}
+- Type text: use "text_input" with {{"text": "your text here"}}
+- Press keys: use "keyboard_control" with {{"key": "enter"}}
+- System commands: use "terminal_command" with {{"command": "your command"}}
+- File operations: use "file_list", "file_create", etc.
 
-System: {system_state.get('platform', 'unknown')}
+EXAMPLES:
+- "YouTube Rasputin müziği" → youtube_search with query "Rasputin müziği"
+- "Google'da Python ara" → web_search with query "Python"
+- "Not Defteri aç" → app_open with application_name "notepad"
+- "Chrome aç" → app_open with application_name "chrome"
+- "yaz merhaba dünya" → text_input with text "merhaba dünya"
 
-IMPORTANT: You must respond with ONLY valid JSON. No thinking, no explanations, no <think> tags.
-
-For YouTube commands, use "web_open_url" with YouTube search URL.
-For browser commands, use "web_open_url" with the URL.
-For complex tasks, break them into steps.
-
-Return this EXACT JSON format:
+Return ONLY this JSON:
 {{
     "analysis": {{
-        "intent": "What user wants to accomplish",
-        "complexity": "simple|moderate|complex"
+        "intent": "What user wants to do",
+        "complexity": "simple"
     }},
     "execution_plan": {{
         "steps": [
@@ -338,12 +347,9 @@ Return this EXACT JSON format:
             }}
         ],
         "total_steps": 1,
-        "estimated_duration": 10
+        "estimated_duration": 5
     }}
-}}
-
-CRITICAL: Return ONLY valid JSON. No other text, no thinking, no explanations.
-"""
+}}"""
         return prompt
     
     def _format_capabilities(self, capabilities: List[Dict[str, Any]]) -> str:
@@ -450,6 +456,7 @@ CRITICAL: Return ONLY valid JSON. No other text, no thinking, no explanations.
     def _extract_json_from_response(self, response_text: str) -> Optional[str]:
         """Extract JSON from AI response using multiple methods"""
         import json
+        import re
         
         # Method 1: Direct JSON
         if response_text.startswith('{') and response_text.endswith('}'):
@@ -511,42 +518,120 @@ CRITICAL: Return ONLY valid JSON. No other text, no thinking, no explanations.
     
     def _create_terminal_fallback_plan(self, command: str) -> ExecutionPlan:
         """Create a fallback plan using terminal commands"""
-        # Simple command mapping for common operations
         command_lower = command.lower()
-        
-        if any(word in command_lower for word in ['list', 'show', 'ls', 'dir']):
-            terminal_command = "ls -la"
-        elif any(word in command_lower for word in ['find', 'search', 'grep']):
-            terminal_command = f"find . -name '*{command.split()[-1]}*' 2>/dev/null"
-        elif any(word in command_lower for word in ['process', 'ps', 'task']):
-            terminal_command = "ps aux"
-        elif any(word in command_lower for word in ['memory', 'ram', 'free']):
-            terminal_command = "free -h"
-        elif any(word in command_lower for word in ['disk', 'space', 'df']):
-            terminal_command = "df -h"
-        elif any(word in command_lower for word in ['network', 'net', 'ip']):
-            terminal_command = "ip addr show"
-        elif any(word in command_lower for word in ['date', 'time']):
-            terminal_command = "date"
-        elif any(word in command_lower for word in ['uptime', 'up']):
-            terminal_command = "uptime"
+        steps = []
+
+        # YouTube commands
+        if any(word in command_lower for word in ['youtube', 'müzik', 'müziği', 'şarkı', 'video']):
+            search_query = command.replace('youtube', '').replace('müziği', '').replace('müzik', '').replace('şarkı', '').replace('video', '').strip()
+            if search_query:
+                steps.append(CommandStep(
+                    name="youtube_search",
+                    description=f"Search YouTube for: {search_query}",
+                    capability_name="terminal_command",
+                    parameters={"command": f"start chrome \"https://www.youtube.com/results?search_query={search_query}\""},
+                    dependencies=[],
+                    estimated_duration=5
+                ))
+
+        # Google search commands
+        elif any(word in command_lower for word in ['google', 'ara', 'search']):
+            search_query = command.replace('google', '').replace('ara', '').replace('search', '').strip()
+            if search_query:
+                steps.append(CommandStep(
+                    name="google_search",
+                    description=f"Search Google for: {search_query}",
+                    capability_name="terminal_command",
+                    parameters={"command": f"start chrome \"https://www.google.com/search?q={search_query}\""},
+                    dependencies=[],
+                    estimated_duration=5
+                ))
+            else:
+                steps.append(CommandStep(
+                    name="open_google",
+                    description="Open Google homepage",
+                    capability_name="terminal_command",
+                    parameters={"command": "start chrome https://www.google.com"},
+                    dependencies=[],
+                    estimated_duration=3
+                ))
+
+        # Application commands
+        elif any(word in command_lower for word in ['not defteri', 'notepad', 'hesap makinesi', 'calculator', 'paint', 'chrome', 'firefox']):
+            if 'not defteri' in command_lower or 'notepad' in command_lower:
+                steps.append(CommandStep(
+                    name="open_notepad",
+                    description="Open Notepad",
+                    capability_name="terminal_command",
+                    parameters={"command": "notepad"},
+                    dependencies=[],
+                    estimated_duration=3
+                ))
+            elif 'hesap makinesi' in command_lower or 'calculator' in command_lower:
+                steps.append(CommandStep(
+                    name="open_calculator",
+                    description="Open Calculator",
+                    capability_name="terminal_command",
+                    parameters={"command": "calc"},
+                    dependencies=[],
+                    estimated_duration=3
+                ))
+            elif 'chrome' in command_lower:
+                steps.append(CommandStep(
+                    name="open_chrome",
+                    description="Open Chrome browser",
+                    capability_name="terminal_command",
+                    parameters={"command": "start chrome"},
+                    dependencies=[],
+                    estimated_duration=3
+                ))
+            elif 'firefox' in command_lower:
+                steps.append(CommandStep(
+                    name="open_firefox",
+                    description="Open Firefox browser",
+                    capability_name="terminal_command",
+                    parameters={"command": "start firefox"},
+                    dependencies=[],
+                    estimated_duration=3
+                ))
+
+        # System info commands
+        elif any(word in command_lower for word in ['sistem', 'bilgi', 'info', 'göster']):
+            steps.append(CommandStep(
+                name="system_info",
+                description="Show system information",
+                capability_name="terminal_command",
+                parameters={"command": "systeminfo"},
+                dependencies=[],
+                estimated_duration=5
+            ))
+
+        # File commands
+        elif any(word in command_lower for word in ['dosya', 'file', 'listele', 'göster']):
+            steps.append(CommandStep(
+                name="list_files",
+                description="List files in current directory",
+                capability_name="terminal_command",
+                parameters={"command": "dir"},
+                dependencies=[],
+                estimated_duration=3
+            ))
+
+        # Default fallback
         else:
-            # Generic terminal command
-            terminal_command = command
-        
-        step = CommandStep(
-            name="terminal_execution",
-            description=f"Execute terminal command: {terminal_command}",
-            capability_name="terminal_command",
-            parameters={"command": terminal_command},
-            dependencies=[],
-            estimated_duration=5
-        )
-        
+            steps.append(CommandStep(
+                name="echo_command",
+                description=f"Echo command: {command}",
+                capability_name="terminal_command",
+                parameters={"command": f"echo 'Command: {command}'"},
+                dependencies=[],
+                estimated_duration=2
+            ))
+
         return ExecutionPlan(
             original_command=command,
-            steps=[step],
-            total_estimated_duration=10,
+            steps=steps,
+            total_estimated_duration=sum(step.estimated_duration for step in steps),
             complexity="simple"
         )
     

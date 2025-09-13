@@ -527,19 +527,15 @@ class ApplicationLauncherExecutor(BaseCapabilityExecutor):
     async def execute(self, parameters: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
         """Execute application launching operation"""
         try:
-            action = parameters.get('action', 'launch')
-            app_name = parameters.get('app_name', '')
+            # Support both old and new parameter names
+            app_name = parameters.get('application_name') or parameters.get('app_name', '')
             app_path = parameters.get('app_path', '')
             arguments = parameters.get('arguments', [])
             
-            if action == "launch":
-                return await self._launch_application(app_name, app_path, arguments)
-            elif action == "close":
-                return await self._close_application(app_name)
-            elif action == "list":
-                return await self._list_applications()
-            else:
-                return {"success": False, "error": f"Unknown action: {action}"}
+            if not app_name:
+                return {"success": False, "error": "No application name provided"}
+            
+            return await self._launch_application(app_name, app_path, arguments)
                 
         except Exception as e:
             logger.error(f"Error executing application launcher operation: {e}")
@@ -547,10 +543,9 @@ class ApplicationLauncherExecutor(BaseCapabilityExecutor):
     
     def can_execute(self, parameters: Dict[str, Any], context: Dict[str, Any]) -> bool:
         """Check if application launcher operation can be executed"""
-        action = parameters.get('action', 'launch')
-        return action in ['launch', 'close', 'list']
+        return "application_name" in parameters or "app_name" in parameters
     
-    async def _launch_application(self, app_name: str, app_path: str, arguments: List[str]) -> Dict[str, Any]:
+    async def _launch_application(self, app_name: str, app_path: str = "", arguments: List[str] = None) -> Dict[str, Any]:
         """Launch an application"""
         try:
             if app_path:

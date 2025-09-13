@@ -450,14 +450,14 @@ class CapabilityManager:
             name="app_open",
             description="Open an application",
             capability_type=CapabilityType.APPLICATION,
-            required_parameters=["application"],
+            required_parameters=["application_name"],
             optional_parameters=["arguments"],
             parameter_info={
-                "application": ParameterInfo(
-                    name="application",
+                "application_name": ParameterInfo(
+                    name="application_name",
                     type="string",
                     required=True,
-                    description="Application name or path"
+                    description="Application name (e.g., notepad, chrome, calculator)"
                 ),
                 "arguments": ParameterInfo(
                     name="arguments",
@@ -469,6 +469,7 @@ class CapabilityManager:
             }
         )
         await self.register_capability(open_app_cap)
+        self.executors["app_open"] = ApplicationLauncherExecutor()
         
         # Create text file
         create_file_cap = Capability(
