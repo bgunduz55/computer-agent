@@ -1,0 +1,4 @@
+[2025-09-13T11:50:51.063620] [INFO] [test] [test_monitoring_system.test_monitoring_system:35] Testing structured logging
+[2025-09-13T11:50:51.063897] [WARNING] [test] [test_monitoring_system.test_monitoring_system:36] Testing warning level
+[2025-09-13T11:50:51.064059] [ERROR] [test] [test_monitoring_system.test_monitoring_system:37] Testing error level
+[2025-09-13T11:50:51.064249] [INFO] [command_execution] [logging_manager.log_command_execution:192] Command executed successfully: test command

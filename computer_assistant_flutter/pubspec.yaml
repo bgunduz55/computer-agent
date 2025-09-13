@@ -1,0 +1,96 @@
+name: computer_assistant_flutter
+description: "JARVIS Computer Assistant - Flutter Mobile Client"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # UI & Navigation
+  cupertino_icons: ^1.0.6
+  material_design_icons_flutter: ^7.0.7296
+  
+  # State Management
+  provider: ^6.1.1
+  riverpod: ^2.4.9
+  flutter_riverpod: ^2.4.9
+  
+  # WebSocket & Networking
+  web_socket_channel: ^2.4.0
+  http: ^1.1.2
+  dio: ^5.4.0
+  
+  # JSON & Data
+  json_annotation: ^4.8.1
+  json_serializable: ^6.7.1
+  
+  # Voice & Audio
+  speech_to_text: ^7.3.0
+  flutter_tts: ^4.2.3
+  permission_handler: ^12.0.1
+  
+  # UI Components
+  flutter_svg: ^2.0.9
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  lottie: ^2.7.0
+  
+  # Storage & Preferences
+  shared_preferences: ^2.2.2
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  
+  # Utils
+  intl: ^0.19.0
+  uuid: ^4.3.3
+  logger: ^2.0.2+1
+  connectivity_plus: ^5.0.2
+  
+  # File & Media
+  # file_picker: ^6.1.1  # Temporarily disabled due to build issues
+  image_picker: ^1.0.7
+  path_provider: ^2.1.2
+  
+  # Charts & Visualization
+  fl_chart: ^0.66.0
+  syncfusion_flutter_charts: ^24.1.41
+  
+  # Animations
+  animations: ^2.0.11
+  rive: ^0.12.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  build_runner: ^2.4.7
+  json_serializable: ^6.7.1
+  hive_generator: ^2.0.1
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/animations/
+    - assets/sounds/
+  
+  # fonts:
+  #   - family: Roboto
+  #     fonts:
+  #       - asset: fonts/Roboto-Regular.ttf
+  #       - asset: fonts/Roboto-Medium.ttf
+  #         weight: 500
+  #       - asset: fonts/Roboto-Bold.ttf
+  #         weight: 700
+  #   - family: JetBrainsMono
+  #     fonts:
+  #       - asset: fonts/JetBrainsMono-Regular.ttf
+  #       - asset: fonts/JetBrainsMono-Bold.ttf
+  #         weight: 700

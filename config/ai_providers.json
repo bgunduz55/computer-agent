@@ -1,0 +1,41 @@
+{
+  "providers": {
+    "openai": {
+      "api_key": "",
+      "enabled": false,
+      "models": [
+        "gpt-4",
+        "gpt-3.5-turbo",
+        "text-embedding-ada-002"
+      ]
+    },
+    "google_gemini": {
+      "api_key": "",
+      "enabled": false,
+      "models": [
+        "gemini-pro",
+        "gemini-pro-vision"
+      ]
+    },
+    "openrouter": {
+      "api_key": "",
+      "enabled": false,
+      "models": [
+        "openai/gpt-4",
+        "anthropic/claude-3-sonnet"
+      ]
+    },
+    "ollama": {
+      "api_key": "",
+      "enabled": true,
+      "base_url": "http://localhost:11434",
+      "models": [
+        "deepseek-r1:8b"
+      ]
+    }
+  },
+  "default_provider": "ollama",
+  "fallback_provider": "openai",
+  "cost_optimization": true,
+  "rate_limiting": true
+}

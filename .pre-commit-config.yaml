@@ -1,0 +1,184 @@
+# Pre-commit hooks configuration for JARVIS Computer Assistant
+# https://pre-commit.com/hooks.html
+
+repos:
+  # General hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        description: "Remove trailing whitespace"
+      - id: end-of-file-fixer
+        description: "Ensure files end with newline"
+      - id: check-yaml
+        description: "Check YAML syntax"
+        args: ['--unsafe']
+      - id: check-json
+        description: "Check JSON syntax"
+      - id: check-toml
+        description: "Check TOML syntax"
+      - id: check-merge-conflict
+        description: "Check for merge conflict markers"
+      - id: check-added-large-files
+        description: "Check for large files"
+        args: ['--maxkb=1000']
+      - id: check-case-conflict
+        description: "Check for case conflicts"
+      - id: check-merge-conflict
+        description: "Check for merge conflict markers"
+      - id: debug-statements
+        description: "Check for debug statements"
+      - id: check-docstring-first
+        description: "Check docstring is first"
+      - id: requirements-txt-fixer
+        description: "Fix requirements.txt format"
+
+  # Python code formatting
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        description: "Format Python code with Black"
+        language_version: python3
+        args: ['--line-length=88']
+
+  # Python import sorting
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        description: "Sort Python imports"
+        args: ['--profile', 'black', '--line-length', '88']
+
+  # Python linting
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        description: "Lint Python code with flake8"
+        args: ['--max-line-length=88', '--extend-ignore=E203,W503,E501']
+        additional_dependencies:
+          - flake8-docstrings
+          - flake8-bugbear
+          - flake8-comprehensions
+          - flake8-simplify
+
+  # Python type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        description: "Type check Python code with mypy"
+        additional_dependencies:
+          - types-requests
+          - types-PyYAML
+          - types-jsonschema
+        args: ['--ignore-missing-imports', '--no-strict-optional']
+
+  # Security scanning
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        description: "Security scan Python code with bandit"
+        args: ['-r', 'src/', '-f', 'json', '-o', 'bandit-report.json']
+        exclude: 'tests/'
+
+  # Dockerfile linting
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint
+        description: "Lint Dockerfile with hadolint"
+        args: ['--ignore', 'DL3008', '--ignore', 'DL3009']
+
+  # YAML linting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        description: "Lint YAML files"
+        args: ['-d', 'relaxed']
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.37.0
+    hooks:
+      - id: markdownlint
+        description: "Lint Markdown files"
+        args: ['--fix']
+
+  # Shell script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        description: "Lint shell scripts"
+
+  # Git commit message linting
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.13.0
+    hooks:
+      - id: commitizen
+        description: "Check commit message format"
+
+  # License header checking
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.4
+    hooks:
+      - id: insert-license
+        description: "Insert license header"
+        args: ['--license-filepath', 'LICENSE_HEADER.txt', '--comment-style', '#']
+        files: '\.(py|yaml|yml|json|md|txt)$'
+
+  # Python dependency checking
+  - repo: https://github.com/jazzband/pip-tools
+    rev: 7.3.0
+    hooks:
+      - id: pip-compile
+        description: "Compile requirements.txt"
+        args: ['--upgrade', '--generate-hashes']
+
+  # Custom hooks
+  - repo: local
+    hooks:
+      - id: check-imports
+        name: Check for unused imports
+        entry: python -m pycln --check --diff src/ tests/
+        language: system
+        pass_filenames: false
+        files: '\.py$'
+
+      - id: check-docstrings
+        name: Check docstring coverage
+        entry: python -m interrogate --check src/
+        language: system
+        pass_filenames: false
+        files: '\.py$'
+
+      - id: check-security
+        name: Check for security vulnerabilities
+        entry: python -m safety check --json
+        language: system
+        pass_filenames: false
+        files: 'requirements.*\.txt$'
+
+      - id: check-dependencies
+        name: Check for outdated dependencies
+        entry: python -m pip-audit --desc --format=json
+        language: system
+        pass_filenames: false
+        files: 'requirements.*\.txt$'
+
+# Configuration for specific hooks
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false

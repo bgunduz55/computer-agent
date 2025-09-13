@@ -1,0 +1,336 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jarvis-computer-assistant"
+version = "1.0.0"
+description = "JARVIS-style computer assistant with voice recognition, AI integration, and remote control capabilities"
+authors = [
+    {name = "JARVIS Team", email = "team@jarvis-assistant.com"}
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Desktop Environment",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+keywords = ["assistant", "voice-recognition", "ai", "automation", "jarvis"]
+dependencies = [
+    "python-dotenv>=1.0.0",
+    "pyttsx3>=2.90",
+    "plyer>=2.0.0",
+    "keyboard>=0.13.5",
+    "pygetwindow>=0.0.9",
+    "screeninfo>=0.8",
+    "psutil>=5.8.0",
+    "schedule>=1.1.0",
+    "cryptography>=41.0.0",
+    "pycaw>=20181226",
+    "screen-brightness-control>=0.9.0",
+    "comtypes>=1.1.10",
+    "ollama-python>=0.1.0",
+    "pathlib>=1.0.1",
+    "SpeechRecognition>=3.10.0",
+    "pyaudio>=0.2.13",
+    "colorama>=0.4.6",
+    "PyQt6>=6.4.0",
+    "httpx>=0.24.0",
+    "requests>=2.31.0",
+    "pywin32>=305",
+    "pyautogui>=0.9.54",
+    "sounddevice>=0.4.6",
+    "numpy>=1.21.0",
+    "opencv-python>=4.8.0",
+    "pytesseract>=0.3.10",
+    "Pillow>=10.0.0",
+    "jsonschema>=4.17.3",
+    "pycryptodome>=3.19.0",
+    "gTTS>=2.5.0",
+    "edge-tts>=6.1.9",
+    "simpleaudio>=1.0.4",
+    "playsound>=1.3.0",
+    "soundfile>=0.12.1",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "websockets>=12.0",
+    "pydantic>=2.5.0",
+    "sqlalchemy>=2.0.0",
+    "alembic>=1.13.0",
+    "redis>=5.0.0",
+    "chromadb>=0.4.0",
+    "sentence-transformers>=2.2.0",
+    "langchain>=0.1.0",
+    "openai>=1.0.0",
+    "google-generativeai>=0.3.0",
+    "anthropic>=0.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.12.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "pylint>=3.0.0",
+    "mypy>=1.7.0",
+    "bandit>=1.7.0",
+    "pre-commit>=3.5.0",
+    "coverage>=7.3.0",
+    "tox>=4.11.0",
+    "sphinx>=7.1.0",
+    "sphinx-rtd-theme>=1.3.0",
+]
+test = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.12.0",
+    "coverage>=7.3.0",
+]
+docs = [
+    "sphinx>=7.1.0",
+    "sphinx-rtd-theme>=1.3.0",
+    "myst-parser>=2.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/jarvis-assistant/computer-assistant"
+Documentation = "https://jarvis-assistant.readthedocs.io"
+Repository = "https://github.com/jarvis-assistant/computer-assistant.git"
+Issues = "https://github.com/jarvis-assistant/computer-assistant/issues"
+Changelog = "https://github.com/jarvis-assistant/computer-assistant/blob/main/CHANGELOG.md"
+
+[project.scripts]
+jarvis = "src.main:main"
+jarvis-server = "src.api.rest.app:main"
+jarvis-client = "computer-assistant-flutter:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["*.json", "*.yaml", "*.yml", "*.qss", "*.ui"]
+
+# Black configuration
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+# isort configuration
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["src"]
+known_third_party = ["pytest", "requests", "fastapi", "pydantic"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+
+# Pytest configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--cov=src",
+    "--cov-report=html",
+    "--cov-report=term-missing",
+    "--cov-fail-under=80",
+    "--strict-markers",
+    "--disable-warnings",
+    "--tb=short",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "e2e: End-to-end tests",
+    "slow: Slow running tests",
+    "voice: Voice recognition tests",
+    "ai: AI provider tests",
+    "system: System control tests",
+    "remote: Remote control tests",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+    "*/venv/*",
+    "*/env/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+# MyPy configuration
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "pyaudio.*",
+    "pyttsx3.*",
+    "keyboard.*",
+    "pygetwindow.*",
+    "screeninfo.*",
+    "psutil.*",
+    "schedule.*",
+    "pycaw.*",
+    "screen_brightness_control.*",
+    "comtypes.*",
+    "ollama_python.*",
+    "SpeechRecognition.*",
+    "colorama.*",
+    "pywin32.*",
+    "pyautogui.*",
+    "sounddevice.*",
+    "opencv-python.*",
+    "pytesseract.*",
+    "gTTS.*",
+    "edge_tts.*",
+    "simpleaudio.*",
+    "playsound.*",
+    "soundfile.*",
+]
+ignore_missing_imports = true
+
+# Pylint configuration
+[tool.pylint.messages_control]
+disable = [
+    "C0114",  # missing-module-docstring
+    "C0115",  # missing-class-docstring
+    "C0116",  # missing-function-docstring
+    "R0903",  # too-few-public-methods
+    "R0913",  # too-many-arguments
+    "W0613",  # unused-argument
+]
+
+[tool.pylint.format]
+max-line-length = 88
+
+[tool.pylint.design]
+max-args = 7
+max-locals = 20
+max-returns = 6
+max-branches = 15
+max-statements = 60
+
+# Flake8 configuration
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503", "E501"]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "*.egg-info",
+    ".venv",
+    "venv",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".coverage",
+    "htmlcov",
+]
+
+# Bandit configuration
+[tool.bandit]
+exclude_dirs = ["tests", "test_*"]
+skips = ["B101", "B601"]
+
+# Tox configuration
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = py311, py312, lint, type-check, security
+isolated_build = True
+
+[testenv]
+deps =
+    -r requirements.txt
+    -r requirements-dev.txt
+commands =
+    pytest {posargs:tests/}
+
+[testenv:lint]
+deps =
+    -r requirements-dev.txt
+commands =
+    black --check src/ tests/
+    isort --check-only src/ tests/
+    flake8 src/ tests/
+    pylint src/
+
+[testenv:type-check]
+deps =
+    -r requirements-dev.txt
+commands =
+    mypy src/
+
+[testenv:security]
+deps =
+    -r requirements-dev.txt
+commands =
+    bandit -r src/
+"""

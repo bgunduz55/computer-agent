@@ -1,0 +1,106 @@
+{
+  "platform": "windows",
+  "name": "Windows 11",
+  "version": "11.0",
+  "voice": {
+    "recognition": {
+      "engine": "windows_speech",
+      "fallback_engine": "google",
+      "language": "tr-TR",
+      "timeout": 5,
+      "phrase_timeout": 0.3,
+      "non_speaking_duration": 0.8
+    },
+    "synthesis": {
+      "engine": "sapi5",
+      "fallback_engine": "pyttsx3",
+      "language": "tr",
+      "voices": {
+        "tr": "Microsoft Zira Desktop - Turkish",
+        "tr_female": "Microsoft Ayşe Desktop - Turkish",
+        "en": "Microsoft David Desktop - English (United States)",
+        "en_female": "Microsoft Zira Desktop - English (United States)"
+      },
+      "rate": 150,
+      "volume": 0.9
+    },
+    "wake_word": {
+      "enabled": true,
+      "words": ["hey alimer", "hey asistan", "merhaba asistan"],
+      "sensitivity": 0.5,
+      "timeout": 3
+    }
+  },
+  "system": {
+    "audio_control": {
+      "engine": "pycaw",
+      "fallback_engine": "generic",
+      "devices": "auto_detect"
+    },
+    "brightness_control": {
+      "engine": "screen_brightness_control",
+      "fallback_engine": "generic"
+    },
+    "window_management": {
+      "engine": "win32gui",
+      "fallback_engine": "pygetwindow"
+    },
+    "process_management": {
+      "engine": "psutil",
+      "fallback_engine": "subprocess"
+    }
+  },
+  "media": {
+    "youtube": {
+      "enabled": true,
+      "browser": "default",
+      "fullscreen": true
+    },
+    "audio_playback": {
+      "engine": "pycaw",
+      "fallback_engine": "pygame"
+    }
+  },
+  "features": {
+    "windows_speech": true,
+    "sapi5_tts": true,
+    "com_interface": true,
+    "windows_api": true,
+    "pycaw_audio": true,
+    "screen_brightness_control": true,
+    "pulseaudio": false,
+    "espeak": false,
+    "festival": false
+  },
+  "dependencies": {
+    "required": [
+      "pywin32",
+      "comtypes",
+      "pycaw",
+      "screen-brightness-control"
+    ],
+    "optional": [
+      "pyttsx3",
+      "speech_recognition"
+    ]
+  },
+  "paths": {
+    "temp_dir": "%TEMP%\\jarvis",
+    "data_dir": "%APPDATA%\\JARVIS",
+    "logs_dir": "%APPDATA%\\JARVIS\\logs",
+    "cache_dir": "%APPDATA%\\JARVIS\\cache"
+  },
+  "registry": {
+    "enabled": true,
+    "key_path": "HKEY_CURRENT_USER\\Software\\JARVIS",
+    "auto_start": true
+  },
+  "services": {
+    "windows_service": {
+      "enabled": true,
+      "name": "JARVISAssistant",
+      "display_name": "JARVIS Computer Assistant",
+      "description": "AI-powered computer assistant with voice recognition"
+    }
+  }
+}

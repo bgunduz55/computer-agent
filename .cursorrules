@@ -1,0 +1,355 @@
+# 🤖 JARVIS Computer Assistant - Cursor Rules
+
+## 🎯 Project Overview
+This is a JARVIS-style computer assistant built with Python, featuring voice recognition, AI integration, modular architecture, and remote control capabilities. The project is designed for cross-platform compatibility (Windows 11 + Linux) and follows clean code principles, SOLID design patterns, and enterprise-grade development practices.
+
+## 🌐 Cross-Platform Requirements
+- **Primary Platforms**: Windows 11, Linux (Ubuntu/Debian/Fedora)
+- **Mobile Support**: Flutter cross-platform mobile app
+- **Platform Abstraction**: Use abstraction layers for platform-specific code
+- **Graceful Degradation**: Fallback solutions when platform features unavailable
+- **No Code Duplication**: Common code in shared modules, platform-specific in separate modules
+
+## 🏗️ Architecture Principles
+
+### 1. Clean Architecture
+- **Domain Layer**: Core business logic and entities
+- **Application Layer**: Use cases and application services
+- **Infrastructure Layer**: External dependencies and implementations
+- **Presentation Layer**: UI and API controllers
+
+### 2. SOLID Principles
+- **Single Responsibility**: Each class has one reason to change
+- **Open/Closed**: Open for extension, closed for modification
+- **Liskov Substitution**: Derived classes must be substitutable for base classes
+- **Interface Segregation**: No client should depend on methods it doesn't use
+- **Dependency Inversion**: Depend on abstractions, not concretions
+
+### 3. Design Patterns
+- **Factory Pattern**: For creating AI providers and plugins
+- **Strategy Pattern**: For different voice recognition engines
+- **Observer Pattern**: For event-driven communication
+- **Command Pattern**: For voice command processing
+- **Dependency Injection**: For loose coupling
+
+## 📁 Cross-Platform Project Structure
+
+```
+src/
+├── core/                    # Core business logic
+│   ├── platform/           # Platform abstraction layer
+│   │   ├── base_platform.py     # Base platform interface
+│   │   ├── windows_platform.py  # Windows implementation
+│   │   ├── linux_platform.py    # Linux implementation
+│   │   └── platform_factory.py  # Platform factory
+│   ├── domain/             # Domain entities and value objects
+│   ├── application/        # Use cases and application services
+│   └── infrastructure/     # External dependencies
+├── features/               # Feature modules
+│   ├── voice_recognition/  # Cross-platform voice recognition
+│   ├── ai_integration/     # AI provider integration
+│   ├── system_control/     # Cross-platform system control
+│   └── remote_control/     # Remote control features
+├── integrations/           # Platform-specific integrations
+│   ├── speech_engines/     # Platform-specific speech engines
+│   │   ├── windows_speech.py    # Windows Speech Platform
+│   │   ├── linux_speech.py      # Linux speech engines
+│   │   └── common_speech.py     # Common speech interface
+│   ├── system_apis/        # Platform-specific system APIs
+│   │   ├── windows_api.py       # Windows API calls
+│   │   ├── linux_api.py         # Linux system calls
+│   │   └── common_api.py        # Common system interface
+│   └── media_engines/      # Platform-specific media control
+├── shared/                 # Shared utilities and components
+│   ├── utils/             # Utility functions
+│   ├── exceptions/        # Custom exceptions
+│   └── constants/         # Application constants
+├── plugins/               # Plugin system
+│   ├── core_plugins/      # Built-in plugins
+│   └── community_plugins/ # Community plugins
+└── api/                   # API layer
+    ├── rest/              # REST API
+    └── websocket/         # WebSocket API
+```
+
+## 🐍 Python Code Standards
+
+### 1. Code Style
+- Follow PEP 8 strictly
+- Use type hints for all function parameters and return values
+- Use dataclasses for data structures
+- Use enums for constants
+- Maximum line length: 88 characters (Black formatter)
+
+### 2. Naming Conventions
+- **Classes**: PascalCase (e.g., `VoiceRecognitionEngine`)
+- **Functions/Methods**: snake_case (e.g., `process_voice_command`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `MAX_RETRY_ATTEMPTS`)
+- **Private methods**: Leading underscore (e.g., `_validate_input`)
+- **Protected methods**: Leading double underscore (e.g., `__cleanup_resources`)
+
+### 3. Documentation
+- Use Google-style docstrings for all public methods
+- Include type information in docstrings
+- Document complex algorithms and business logic
+- Keep docstrings up-to-date with code changes
+
+### 4. Error Handling
+- Use custom exceptions for business logic errors
+- Log errors with appropriate levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- Never use bare `except:` clauses
+- Provide meaningful error messages
+- Handle platform-specific errors gracefully
+- Use try-except blocks for platform detection and feature availability
+
+### 5. Cross-Platform Considerations
+- Use platform detection before importing platform-specific modules
+- Implement graceful degradation for missing platform features
+- Use conditional imports: `if platform.system() == "Windows":`
+- Test on both Windows and Linux platforms
+- Use abstraction layers for platform-specific functionality
+- Avoid hardcoded platform-specific paths or commands
+
+## 🧪 Testing Requirements
+
+### 1. Test Coverage
+- Minimum 80% code coverage
+- 100% coverage for critical business logic
+- All public methods must have tests
+- Integration tests for API endpoints
+
+### 2. Test Structure
+- Use pytest as the testing framework
+- Follow AAA pattern (Arrange, Act, Assert)
+- Use fixtures for test data setup
+- Mock external dependencies
+- Use parametrized tests for multiple scenarios
+
+### 3. Test Naming
+- Test files: `test_*.py`
+- Test functions: `test_should_<expected_behavior>_when_<condition>`
+- Test classes: `Test<ClassName>`
+
+## 🔒 Security Guidelines
+
+### 1. Input Validation
+- Validate all user inputs
+- Sanitize data before processing
+- Use allowlists instead of blocklists
+- Implement rate limiting for API endpoints
+
+### 2. Data Protection
+- Encrypt sensitive data at rest
+- Use secure communication protocols (HTTPS, WSS)
+- Implement proper authentication and authorization
+- Log security events for monitoring
+
+### 3. Dependency Management
+- Keep dependencies up-to-date
+- Use dependency scanning tools
+- Pin dependency versions
+- Review and audit third-party packages
+
+## 📊 Performance Guidelines
+
+### 1. Optimization
+- Profile code before optimizing
+- Use async/await for I/O operations
+- Implement caching where appropriate
+- Monitor memory usage and prevent leaks
+
+### 2. Resource Management
+- Use context managers for resource cleanup
+- Implement connection pooling
+- Monitor system resources
+- Implement graceful degradation
+
+## 🚀 Development Workflow
+
+### 1. Git Workflow
+- Use feature branches for new features
+- Write descriptive commit messages
+- Use conventional commits format
+- Squash commits before merging
+
+### 2. Code Review
+- All code must be reviewed before merging
+- Check for code quality, security, and performance
+- Ensure tests pass and coverage is maintained
+- Verify documentation is updated
+
+### 3. Continuous Integration
+- Run tests on every commit
+- Check code style and formatting
+- Run security scans
+- Deploy to staging environment
+
+## 🎨 UI/UX Guidelines
+
+### 1. Design Principles
+- Follow Material Design principles
+- Ensure accessibility compliance
+- Use consistent color schemes and typography
+- Implement responsive design
+
+### 2. User Experience
+- Provide clear feedback for user actions
+- Implement loading states and progress indicators
+- Handle errors gracefully with user-friendly messages
+- Support keyboard navigation
+
+## 🔧 Configuration Management
+
+### 1. Environment Variables
+- Use environment variables for configuration
+- Provide sensible defaults
+- Validate configuration on startup
+- Use different configs for different environments
+
+### 2. Secrets Management
+- Never commit secrets to version control
+- Use secure secret management systems
+- Rotate secrets regularly
+- Implement proper access controls
+
+## 📝 Documentation Standards
+
+### 1. Code Documentation
+- Document all public APIs
+- Include usage examples
+- Document configuration options
+- Keep documentation synchronized with code
+
+### 2. Architecture Documentation
+- Document system architecture
+- Create sequence diagrams for complex flows
+- Document data models and relationships
+- Maintain API documentation
+
+## 🐛 Debugging and Logging
+
+### 1. Logging
+- Use structured logging (JSON format)
+- Include correlation IDs for request tracing
+- Log at appropriate levels
+- Implement log rotation and retention
+
+### 2. Debugging
+- Use debugger for complex issues
+- Implement comprehensive error reporting
+- Use profiling tools for performance issues
+- Document common troubleshooting steps
+
+## 🚨 Common Anti-Patterns to Avoid
+
+### 1. Code Smells
+- Don't use magic numbers or strings
+- Avoid deep nesting (max 3 levels)
+- Don't create god classes or methods
+- Avoid tight coupling between modules
+
+### 2. Security Anti-Patterns
+- Don't store secrets in code
+- Avoid SQL injection vulnerabilities
+- Don't trust user input
+- Avoid hardcoded credentials
+
+### 3. Performance Anti-Patterns
+- Don't make blocking calls in async functions
+- Avoid N+1 query problems
+- Don't load entire datasets into memory
+- Avoid premature optimization
+
+## 🎯 Quality Gates
+
+### 1. Pre-commit Checks
+- Code formatting (Black, isort)
+- Linting (flake8, pylint)
+- Type checking (mypy)
+- Security scanning (bandit)
+
+### 2. Pre-merge Checks
+- All tests pass
+- Code coverage meets requirements
+- Security scan passes
+- Performance benchmarks pass
+
+### 3. Release Checks
+- Documentation is complete
+- Changelog is updated
+- Version numbers are correct
+- All dependencies are compatible
+
+## 🔄 Refactoring Guidelines
+
+### 1. When to Refactor
+- Code duplication
+- Complex conditional logic
+- Long methods or classes
+- Poor naming
+
+### 2. How to Refactor
+- Make small, incremental changes
+- Run tests after each change
+- Refactor in separate commits
+- Document the reasoning
+
+## 📈 Monitoring and Observability
+
+### 1. Metrics
+- Track key performance indicators
+- Monitor error rates and response times
+- Track user engagement metrics
+- Monitor system resource usage
+
+### 2. Alerting
+- Set up alerts for critical issues
+- Use appropriate alert thresholds
+- Implement escalation procedures
+- Test alerting systems regularly
+
+## 🎓 Learning and Improvement
+
+### 1. Code Reviews
+- Use reviews as learning opportunities
+- Share knowledge and best practices
+- Ask questions and provide feedback
+- Document lessons learned
+
+### 2. Continuous Improvement
+- Regularly review and update standards
+- Learn from production issues
+- Stay updated with industry best practices
+- Share knowledge with the team
+
+---
+
+## 🚀 Quick Start Commands
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+
+# Run tests
+pytest tests/ --cov=src/ --cov-report=html
+
+# Format code
+black src/ tests/
+isort src/ tests/
+
+# Lint code
+flake8 src/ tests/
+pylint src/
+
+# Type check
+mypy src/
+
+# Security scan
+bandit -r src/
+
+# Run application
+python src/main.py
+```
+
+Remember: Clean code is not written by following a set of rules. It's written by programmers who care about their craft and continuously strive to improve their skills. These rules are guidelines to help you write better code, but the most important thing is to think critically about your code and always ask: "How can I make this better?"
