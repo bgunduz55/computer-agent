@@ -326,6 +326,50 @@ class WebSocketService {
     await sendMessage(message);
   }
 
+  /// Send intelligent command (AI-powered multi-step commands)
+  Future<void> sendIntelligentCommand(String command, {Map<String, dynamic>? context}) async {
+    final message = WebSocketMessage(
+      type: MessageType.intelligentCommand,
+      data: {
+        'command': command,
+        'context': context ?? {},
+        'timestamp': DateTime.now().millisecondsSinceEpoch / 1000.0,
+      },
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(message);
+  }
+
+  /// Send quick command (single action commands)
+  Future<void> sendQuickCommand(String command, {String? language, double? confidence}) async {
+    final message = WebSocketMessage(
+      type: MessageType.quickCommand,
+      data: {
+        'command': command,
+        if (language != null) 'language': language,
+        if (confidence != null) 'confidence': confidence,
+      },
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(message);
+  }
+
+  /// Request capabilities
+  Future<void> requestCapabilities() async {
+    final message = WebSocketMessage(
+      type: MessageType.capabilityRequest,
+      data: {},
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(message);
+  }
+
   /// Send system control command
   Future<void> sendSystemControl(String action, {Map<String, dynamic>? params}) async {
     final message = WebSocketMessage(

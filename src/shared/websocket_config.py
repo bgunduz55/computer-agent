@@ -111,7 +111,7 @@ class WebSocketConfigManager:
             host='100.109.80.8',
             port=8765,
             use_ssl=False,
-            ping_interval=30,
+            ping_interval=60,  # 30'dan 60'a çıkarıldı
             ping_timeout=10,
             reconnect_attempts=5,
             reconnect_delay=2000,

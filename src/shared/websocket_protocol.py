@@ -37,6 +37,21 @@ class MessageType(Enum):
     COMMAND = "command"
     COMMAND_RESPONSE = "commandResponse"
     
+    # Intelligent Commands
+    INTELLIGENT_COMMAND = "intelligentCommand"
+    INTELLIGENT_COMMAND_RESPONSE = "intelligentCommandResponse"
+    INTELLIGENT_COMMAND_PROGRESS = "intelligentCommandProgress"
+    INTELLIGENT_COMMAND_STEP = "intelligentCommandStep"
+    
+    # Quick Commands
+    QUICK_COMMAND = "quickCommand"
+    QUICK_COMMAND_RESPONSE = "quickCommandResponse"
+    
+    # Capability System
+    CAPABILITY_REQUEST = "capabilityRequest"
+    CAPABILITY_RESPONSE = "capabilityResponse"
+    CAPABILITY_UPDATE = "capabilityUpdate"
+    
     # Terminal Control
     TERMINAL_COMMAND = "terminalCommand"
     TERMINAL_RESPONSE = "terminalResponse"
@@ -163,6 +178,9 @@ class WebSocketMessage:
             MessageType.AUTH_REQUEST: MessageType.AUTH_RESPONSE,
             MessageType.VOICE_COMMAND: MessageType.VOICE_RESPONSE,
             MessageType.COMMAND: MessageType.COMMAND_RESPONSE,
+            MessageType.INTELLIGENT_COMMAND: MessageType.INTELLIGENT_COMMAND_RESPONSE,
+            MessageType.QUICK_COMMAND: MessageType.QUICK_COMMAND_RESPONSE,
+            MessageType.CAPABILITY_REQUEST: MessageType.CAPABILITY_RESPONSE,
             MessageType.AI_REQUEST: MessageType.AI_RESPONSE,
             MessageType.SYSTEM_CONTROL: MessageType.SYSTEM_RESPONSE,
             MessageType.FILE_LIST: MessageType.FILE_RESPONSE,
@@ -193,6 +211,9 @@ class WebSocketMessage:
             MessageType.AUTH_REQUEST,
             MessageType.VOICE_COMMAND,
             MessageType.COMMAND,
+            MessageType.INTELLIGENT_COMMAND,
+            MessageType.QUICK_COMMAND,
+            MessageType.CAPABILITY_REQUEST,
             MessageType.AI_REQUEST,
             MessageType.SYSTEM_CONTROL,
             MessageType.FILE_LIST,
@@ -212,6 +233,12 @@ class WebSocketMessage:
             MessageType.AUTH_RESPONSE,
             MessageType.VOICE_RESPONSE,
             MessageType.COMMAND_RESPONSE,
+            MessageType.INTELLIGENT_COMMAND_RESPONSE,
+            MessageType.INTELLIGENT_COMMAND_PROGRESS,
+            MessageType.INTELLIGENT_COMMAND_STEP,
+            MessageType.QUICK_COMMAND_RESPONSE,
+            MessageType.CAPABILITY_RESPONSE,
+            MessageType.CAPABILITY_UPDATE,
             MessageType.AI_RESPONSE,
             MessageType.SYSTEM_RESPONSE,
             MessageType.FILE_RESPONSE,
@@ -285,13 +312,15 @@ class MessageBuilder:
         )
     
     @staticmethod
-    def create_error_response(request: WebSocketMessage, error_message: str) -> WebSocketMessage:
+    def create_error_response(message: str, client_id: str = None, message_id: str = None) -> WebSocketMessage:
         """Create error response"""
-        return WebSocketMessage.create_response(
-            request,
-            {"error": error_message},
+        return WebSocketMessage(
+            message_type=MessageType.ERROR,
+            data={"error": message},
+            client_id=client_id,
+            message_id=message_id,
             success=False,
-            error_message=error_message
+            error_message=message
         )
     
     @staticmethod
@@ -347,5 +376,104 @@ class MessageBuilder:
                 "connected_clients": connected_clients,
                 "uptime": uptime
             },
+            client_id
+        )
+    
+    @staticmethod
+    def create_intelligent_command(command: str, context: Optional[Dict[str, Any]] = None, client_id: Optional[str] = None) -> WebSocketMessage:
+        """Create intelligent command message"""
+        data = {"command": command}
+        if context:
+            data["context"] = context
+        return WebSocketMessage.create_request(
+            MessageType.INTELLIGENT_COMMAND,
+            data,
+            client_id
+        )
+    
+    @staticmethod
+    def create_quick_command(command: str, language: Optional[str] = None, confidence: Optional[float] = None, client_id: Optional[str] = None) -> WebSocketMessage:
+        """Create quick command message"""
+        data = {"command": command}
+        if language:
+            data["language"] = language
+        if confidence:
+            data["confidence"] = confidence
+        return WebSocketMessage.create_request(
+            MessageType.QUICK_COMMAND,
+            data,
+            client_id
+        )
+    
+    @staticmethod
+    def create_capability_request(client_id: Optional[str] = None) -> WebSocketMessage:
+        """Create capability request message"""
+        return WebSocketMessage.create_request(
+            MessageType.CAPABILITY_REQUEST,
+            {},
+            client_id
+        )
+    
+    @staticmethod
+    def create_intelligent_command_response(command: str, response: str, success: bool = True, client_id: Optional[str] = None) -> WebSocketMessage:
+        """Create intelligent command response message"""
+        return WebSocketMessage.create_request(
+            MessageType.INTELLIGENT_COMMAND_RESPONSE,
+            {
+                "command": command,
+                "response": response,
+                "success": success
+            },
+            client_id
+        )
+    
+    @staticmethod
+    def create_intelligent_command_progress(progress: int, status: str, current_step: str, steps: Optional[List[Dict[str, Any]]] = None, client_id: Optional[str] = None) -> WebSocketMessage:
+        """Create intelligent command progress message"""
+        data = {
+            "progress": progress,
+            "status": status,
+            "currentStep": current_step
+        }
+        if steps:
+            data["steps"] = steps
+        return WebSocketMessage.create_request(
+            MessageType.INTELLIGENT_COMMAND_PROGRESS,
+            data,
+            client_id
+        )
+    
+    @staticmethod
+    def create_intelligent_command_step(step_name: str, step_status: str, step_progress: int, client_id: Optional[str] = None) -> WebSocketMessage:
+        """Create intelligent command step message"""
+        return WebSocketMessage.create_request(
+            MessageType.INTELLIGENT_COMMAND_STEP,
+            {
+                "stepName": step_name,
+                "stepStatus": step_status,
+                "stepProgress": step_progress
+            },
+            client_id
+        )
+    
+    @staticmethod
+    def create_quick_command_response(command: str, response: str, success: bool = True, client_id: Optional[str] = None) -> WebSocketMessage:
+        """Create quick command response message"""
+        return WebSocketMessage.create_request(
+            MessageType.QUICK_COMMAND_RESPONSE,
+            {
+                "command": command,
+                "response": response,
+                "success": success
+            },
+            client_id
+        )
+    
+    @staticmethod
+    def create_capability_response(capabilities: List[Dict[str, Any]], client_id: Optional[str] = None) -> WebSocketMessage:
+        """Create capability response message"""
+        return WebSocketMessage.create_request(
+            MessageType.CAPABILITY_RESPONSE,
+            {"capabilities": capabilities},
             client_id
         )

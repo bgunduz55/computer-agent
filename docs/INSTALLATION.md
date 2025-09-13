@@ -167,7 +167,7 @@ pip install -r requirements.txt
   },
   "ai": {
     "default_provider": "ollama",
-    "default_model": "gpt-oss:20b",
+    "default_model": "deepseek-r1:8b",
     "enable_rag": true,
     "max_tokens": 1000,
     "temperature": 0.7
@@ -208,7 +208,7 @@ pip install -r requirements.txt
 
 2. **Model indirin:**
 ```bash
-ollama pull gpt-oss:20b
+ollama pull deepseek-r1:8b
 ollama pull deepseek-r1:7b
 ```
 
@@ -220,7 +220,7 @@ ollama pull deepseek-r1:7b
       "ollama": {
         "base_url": "http://localhost:11434",
         "api_key": "",
-        "models": ["gpt-oss:20b", "deepseek-r1:7b"]
+        "models": ["deepseek-r1:8b", "deepseek-r1:7b"]
       }
     }
   }

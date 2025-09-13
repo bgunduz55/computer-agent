@@ -172,7 +172,7 @@ ws.onopen = () => {
   },
   "ai": {
     "default_provider": "ollama",
-    "default_model": "gpt-oss:20b",
+    "default_model": "deepseek-r1:8b",
     "enable_rag": true
   },
   "remote_control": {
@@ -194,7 +194,7 @@ ws.onopen = () => {
 {
   "ollama": {
     "base_url": "http://localhost:11434",
-    "models": ["gpt-oss:20b", "deepseek-r1:7b"]
+    "models": ["deepseek-r1:8b", "deepseek-r1:7b"]
   }
 }
 ```

@@ -23,7 +23,7 @@ class WebSocketConfig {
     this.host = '100.109.80.8',
     this.port = 8766,
     this.useSSL = false,
-    this.pingInterval = 30,
+    this.pingInterval = 60,
     this.pingTimeout = 10,
     this.reconnectAttempts = 5,
     this.reconnectDelay = 2000,

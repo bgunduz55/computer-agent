@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_provider.dart';
 import '../widgets/voice_button.dart';
+import '../widgets/intelligent_command_button.dart';
+import '../widgets/command_progress_indicator.dart';
 import '../widgets/connection_status.dart';
 import '../widgets/quick_commands.dart';
 import '../widgets/command_history.dart';
 import '../widgets/smart_suggestions.dart';
 import '../widgets/settings_panel.dart';
+import '../widgets/notification_banner.dart';
 
 class RefactoredHomeScreen extends ConsumerStatefulWidget {
   const RefactoredHomeScreen({Key? key}) : super(key: key);
@@ -25,7 +28,7 @@ class _RefactoredHomeScreenState extends ConsumerState<RefactoredHomeScreen>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     
-    // Otomatik bağlantı
+    // Otomatik bağlantı - sadece bir kez
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _autoConnect();
     });
@@ -114,6 +117,14 @@ class _RefactoredHomeScreenState extends ConsumerState<RefactoredHomeScreen>
               _buildSmartTab(appState),
               _buildHistoryTab(appState),
             ],
+          ),
+          
+          // Notification banner
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: NotificationBanner(),
           ),
           
           // Ayarlar paneli
@@ -208,10 +219,10 @@ class _RefactoredHomeScreenState extends ConsumerState<RefactoredHomeScreen>
                   
                   const SizedBox(height: 40),
                   
-                  // Sesli komut butonu
+                  // Hızlı komut butonu (mikrofon)
                   VoiceButton(
                     onCommandRecognized: (command) {
-                      _handleCommand(command);
+                      _handleQuickCommand(command);
                     },
                     onStartListening: () {
                       // Dinleme başladı
@@ -222,9 +233,28 @@ class _RefactoredHomeScreenState extends ConsumerState<RefactoredHomeScreen>
                     enabled: appState.isConnected,
                   ),
                   
+                  const SizedBox(height: 30),
+                  
+                  // Akıllı komut butonu
+                  IntelligentCommandButton(
+                    onCommandRecognized: (command) {
+                      _handleIntelligentCommand(command);
+                    },
+                    onStartListening: () {
+                      // Dinleme başladı
+                    },
+                    onStopListening: () {
+                      // Dinleme bitti
+                    },
+                    enabled: appState.isConnected,
+                    isProcessing: appState.isIntelligentCommandProcessing,
+                    currentStep: appState.currentStep ?? '',
+                    progress: appState.intelligentCommandProgress,
+                  ),
+                  
                   const SizedBox(height: 20),
                   
-                  // Komut durumu
+                  // Hızlı komut durumu
                   if (appState.isProcessing)
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -242,7 +272,7 @@ class _RefactoredHomeScreenState extends ConsumerState<RefactoredHomeScreen>
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            'Processing command...',
+                            'Processing quick command...',
                             style: TextStyle(
                               color: Colors.blue.shade800,
                               fontWeight: FontWeight.w500,
@@ -250,6 +280,25 @@ class _RefactoredHomeScreenState extends ConsumerState<RefactoredHomeScreen>
                           ),
                         ],
                       ),
+                    ),
+                  
+                  // Akıllı komut progress indicator
+                  if (appState.isIntelligentCommandProcessing && appState.commandSteps != null)
+                    CommandProgressIndicator(
+                      steps: appState.commandSteps!
+                          .map((step) => CommandStep(
+                                name: step['name'] ?? '',
+                                description: step['description'] ?? '',
+                                isCompleted: step['isCompleted'] ?? false,
+                                isCurrent: step['isCurrent'] ?? false,
+                                hasError: step['hasError'] ?? false,
+                                errorMessage: step['errorMessage'],
+                              ))
+                          .toList(),
+                      currentStep: appState.currentStep != null ? 0 : 0,
+                      status: appState.intelligentCommandStatus ?? '',
+                      isError: false,
+                      progress: appState.intelligentCommandProgress.toDouble(),
                     ),
                 ],
               ),
@@ -314,5 +363,19 @@ class _RefactoredHomeScreenState extends ConsumerState<RefactoredHomeScreen>
     
     // Komutu gönder
     ref.read(appStateProvider.notifier).sendCommand(command);
+  }
+
+  void _handleQuickCommand(String command) {
+    if (command.trim().isEmpty) return;
+    
+    // Hızlı komutu gönder
+    ref.read(appStateProvider.notifier).sendQuickCommand(command);
+  }
+
+  void _handleIntelligentCommand(String command) {
+    if (command.trim().isEmpty) return;
+    
+    // Akıllı komutu gönder
+    ref.read(appStateProvider.notifier).sendIntelligentCommand(command);
   }
 }

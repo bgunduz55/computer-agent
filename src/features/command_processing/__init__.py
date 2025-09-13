@@ -11,7 +11,6 @@ from .executors.application_executor import ApplicationExecutor
 from .executors.browser_executor import BrowserExecutor
 from .executors.system_executor import SystemExecutor
 from .executors.media_executor import MediaExecutor
-from .websocket_command_handler import WebSocketCommandHandler
 
 __all__ = [
     'CommandClassifier',
@@ -20,7 +19,6 @@ __all__ = [
     'ProcessedCommand',
     'CommandExecutor',
     'CommandResult',
-    'WebSocketCommandHandler',
     'TypingExecutor',
     'ApplicationExecutor',
     'BrowserExecutor',

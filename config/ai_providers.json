@@ -30,7 +30,7 @@
       "enabled": true,
       "base_url": "http://localhost:11434",
       "models": [
-        "gpt-oss:20b"
+        "deepseek-r1:8b"
       ]
     }
   },

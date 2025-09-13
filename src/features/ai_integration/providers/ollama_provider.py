@@ -73,7 +73,7 @@ class OllamaProvider(BaseAIProvider):
         try:
             # Default models from config
             default_models = self.config.get("models", [
-                "gpt-oss:20b",
+                "deepseek-r1:8b",
                 "deepseek-r1:7b",
                 "llama2:7b",
                 "codellama:7b"

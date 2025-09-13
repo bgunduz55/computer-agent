@@ -28,6 +28,9 @@ from features.terminal_integration import get_terminal_manager
 from features.ai_integration import get_ai_manager, get_rag_system
 from integrations.speech_engines import get_speech_manager
 from features.settings import get_settings_manager
+from features.command_processing.intelligent_command_processor import IntelligentCommandProcessor
+from features.command_processing.capability_system import get_capability_manager
+from features.command_processing.quick_commands import get_quick_commands_handler
 from shared.websocket_config import get_websocket_config
 from shared.websocket_protocol import WebSocketMessage, MessageType, MessageStatus, MessageBuilder
 
@@ -72,6 +75,9 @@ class WebSocketServer:
         self.rag_system = None
         self.speech_manager = None
         self.command_handler = None
+        self.intelligent_processor = None
+        self.capability_manager = None
+        self.quick_commands_handler = None
         
         # Message handlers
         self.message_handlers = {
@@ -87,6 +93,9 @@ class WebSocketServer:
             MessageType.RAG_SEARCH: self._handle_rag_search,
             MessageType.RAG_ADD_DOCUMENT: self._handle_rag_add_document,
             MessageType.RAG_DELETE_DOCUMENT: self._handle_rag_delete_document,
+            MessageType.INTELLIGENT_COMMAND: self._handle_intelligent_command,
+            MessageType.QUICK_COMMAND: self._handle_quick_command,
+            MessageType.CAPABILITY_REQUEST: self._handle_capability_request,
             MessageType.PING: self._handle_ping,
         }
         
@@ -187,7 +196,8 @@ class WebSocketServer:
                 return
             
             # Cancel background tasks individually with proper cleanup
-            self.logger.info(f"Cancelling {len(self.background_tasks)} background tasks")
+            if self.background_tasks:
+                self.logger.info(f"Cancelling {len(self.background_tasks)} background tasks")
             for i, task in enumerate(self.background_tasks):
                 self.logger.info(f"Cancelling task {i}: {task.get_name() if hasattr(task, 'get_name') else 'unnamed'} - done: {task.done()}")
                 if not task.done():
@@ -298,6 +308,25 @@ class WebSocketServer:
             self.speech_manager = get_speech_manager()
             if not self.speech_manager.initialize():
                 self.logger.warning("Speech manager initialization failed")
+            
+            # Initialize capability manager
+            self.capability_manager = await get_capability_manager()
+            if not await self.capability_manager.initialize():
+                self.logger.warning("Capability manager initialization failed")
+            
+            # Initialize intelligent command processor
+            if self.ai_manager and self.capability_manager:
+                self.intelligent_processor = IntelligentCommandProcessor(
+                    self.ai_manager, 
+                    self.capability_manager
+                )
+                if not await self.intelligent_processor.initialize():
+                    self.logger.warning("Intelligent command processor initialization failed")
+            
+            # Initialize quick commands handler
+            if self.capability_manager:
+                self.quick_commands_handler = get_quick_commands_handler(self.capability_manager)
+                self.logger.info("Quick commands handler initialized")
             
             self.logger.info("JARVIS components initialized")
             
@@ -443,19 +472,93 @@ class WebSocketServer:
         await self._send_message(client_id, processing_notification)
         
         try:
-            # Process voice command through speech manager
-            if self.speech_manager:
-                # Process the command through JARVIS core
-                if hasattr(self, 'jarvis_core') and self.jarvis_core:
-                    try:
-                        # Use JARVIS core to process the command
-                        response_text = await self.jarvis_core.process_voice_command(command)
-                        self.logger.info(f"JARVIS processed command '{command}' -> '{response_text[:100]}...'")
-                    except Exception as e:
-                        self.logger.warning(f"JARVIS core processing failed: {e}")
-                        response_text = f"Command processed: {command} (JARVIS core unavailable)"
-                else:
-                    response_text = f"Voice command received: {command}"
+            # First try quick commands for fast response
+            if self.quick_commands_handler:
+                quick_result = await self.quick_commands_handler.process_command(command)
+                if quick_result["success"]:
+                    # Send quick command response
+                    response_text = f"⚡ {quick_result['message']}"
+                    if quick_result.get('data', {}).get('output'):
+                        response_text += f"\n\n{quick_result['data']['output']}"
+                    
+                    # Create success response
+                    response = MessageBuilder.create_success_response(
+                        message,
+                        {
+                            "command": command,
+                            "response": response_text,
+                            "success": True,
+                            "command_type": "quick"
+                        }
+                    )
+                    await self._send_message(client_id, response)
+                    
+                    # Send completion notification
+                    completion_notification = MessageBuilder.create_notification(
+                        f"Quick command completed: {quick_result['command_name']}",
+                        "success",
+                        client_id
+                    )
+                    await self._send_message(client_id, completion_notification)
+                    
+                    self.logger.info(f"Quick command processed: '{command}' -> {quick_result['command_name']}")
+                    return
+            
+            # Process voice command through intelligent command processor
+            if self.intelligent_processor:
+                try:
+                    # Send processing status update
+                    processing_update = MessageBuilder.create_notification(
+                        f"Processing command: {command}",
+                        "info",
+                        client_id
+                    )
+                    await self._send_message(client_id, processing_update)
+                    
+                    # Use intelligent command processor
+                    result = await self.intelligent_processor.process_intelligent_command(command, {})
+                    
+                    # Send detailed response
+                    if result.success:
+                        response_text = f"✅ {result.message}"
+                        if result.steps_executed > 0:
+                            response_text += f" (Executed {result.steps_executed} steps in {result.execution_time:.2f}s)"
+                        
+                        # Send success notification
+                        success_notification = MessageBuilder.create_notification(
+                            f"Command completed successfully",
+                            "success",
+                            client_id
+                        )
+                        await self._send_message(client_id, success_notification)
+                    else:
+                        response_text = f"❌ {result.message}"
+                        if result.error:
+                            response_text += f" Error: {result.error}"
+                        
+                        # Send error notification
+                        error_notification = MessageBuilder.create_notification(
+                            f"Command failed: {result.error or 'Unknown error'}",
+                            "error",
+                            client_id
+                        )
+                        await self._send_message(client_id, error_notification)
+                    
+                    self.logger.info(f"Intelligent command processed: '{command}' -> Success: {result.success}")
+                except Exception as e:
+                    self.logger.warning(f"Intelligent command processing failed: {e}")
+                    response_text = f"Command processed: {command} (Intelligent processing unavailable)"
+                    
+                    # Send error notification
+                    error_notification = MessageBuilder.create_notification(
+                        f"Processing error: {str(e)}",
+                        "error",
+                        client_id
+                    )
+                    await self._send_message(client_id, error_notification)
+            else:
+                # Fallback to basic processing
+                response_text = f"Voice command received: {command}"
                 
                 # Create success response
                 response = MessageBuilder.create_success_response(
@@ -478,10 +581,6 @@ class WebSocketServer:
                     client_id
                 )
                 await self._send_message(client_id, completion_notification)
-            else:
-                self.logger.warning(f"Speech manager not available for client {client_id}")
-                error_response = MessageBuilder.create_error_response(message, "Speech manager not available")
-                await self._send_message(client_id, error_response)
         
         except Exception as e:
             self.logger.error(f"Error handling voice command from {client_id}: {e}")
@@ -879,7 +978,7 @@ class WebSocketServer:
                     
                     # Use asyncio.sleep with cancellation support
                     try:
-                        await asyncio.sleep(30)  # Broadcast every 30 seconds
+                        await asyncio.sleep(60)  # Broadcast every 60 seconds
                     except asyncio.CancelledError:
                         break
                     
@@ -1033,6 +1132,186 @@ class WebSocketServer:
         except Exception as e:
             self.logger.error(f"Error handling RAG delete document request: {e}")
             await self._send_error(message.client_id, f"Failed to delete document: {str(e)}")
+
+    async def _handle_intelligent_command(self, message: WebSocketMessage) -> None:
+        """Handle intelligent command messages"""
+        try:
+            client_id = message.client_id
+            command = message.data.get('command', '')
+            context = message.data.get('context', {})
+            
+            if not command:
+                await self._send_error_response(client_id, "No command provided", message.message_id)
+                return
+            
+            self.logger.info(f"Processing intelligent command from client {client_id}: {command}")
+            
+            # Import intelligent command processor
+            from features.command_processing.intelligent_command_processor import IntelligentCommandProcessor
+            from features.command_processing.capability_system import get_capability_manager
+            from features.command_processing.dynamic_capability_system import get_dynamic_capability_manager
+            
+            # Get AI manager and capability managers
+            ai_manager = get_ai_manager()
+            capability_manager = await get_capability_manager()
+            dynamic_capability_manager = await get_dynamic_capability_manager()
+            
+            # Create processor
+            processor = IntelligentCommandProcessor(ai_manager, capability_manager)
+            processor.dynamic_capability_manager = dynamic_capability_manager
+            await processor.initialize()
+            
+            # Set up progress callbacks for real-time updates
+            processor.set_progress_callback(lambda msg: asyncio.create_task(self._send_message_to_client(client_id, msg)))
+            processor.set_step_callback(lambda msg: asyncio.create_task(self._send_message_to_client(client_id, msg)))
+            
+            # Process command
+            result = await processor.process_intelligent_command(command, context, client_id)
+            
+            # Send response
+            response_data = {
+                "command": command,
+                "response": result.message,
+                "success": result.success,
+                "execution_time": result.execution_time,
+                "steps_executed": result.steps_executed,
+                "total_steps": result.total_steps
+            }
+            
+            if result.error:
+                response_data["error"] = result.error
+            
+            if result.metadata:
+                response_data["metadata"] = result.metadata
+            
+            response = MessageBuilder.create_intelligent_command_response(
+                command=command,
+                response=result.message,
+                success=result.success,
+                client_id=client_id
+            )
+            
+            await self._send_message_to_client(client_id, response)
+            
+            # Cleanup
+            await processor.cleanup()
+            
+        except Exception as e:
+            self.logger.error(f"Error handling intelligent command: {e}")
+            await self._send_error_response(client_id, f"Error processing intelligent command: {e}", message.message_id)
+
+    async def _handle_quick_command(self, message: WebSocketMessage) -> None:
+        """Handle quick command messages"""
+        try:
+            client_id = message.client_id
+            command = message.data.get('command', '')
+            language = message.data.get('language')
+            confidence = message.data.get('confidence')
+            
+            if not command:
+                await self._send_error_response(client_id, "No command provided", message.message_id)
+                return
+            
+            self.logger.info(f"Processing quick command from client {client_id}: {command}")
+            
+            # Try quick commands handler first
+            if self.quick_commands_handler:
+                quick_result = await self.quick_commands_handler.process_command(command)
+                if quick_result["success"]:
+                    # Send quick command response
+                    response_text = f"⚡ {quick_result['message']}"
+                    if quick_result.get('data', {}).get('output'):
+                        response_text += f"\n\n{quick_result['data']['output']}"
+                    
+                    response = MessageBuilder.create_success_response(
+                        message,
+                        {
+                            "command": command,
+                            "response": response_text,
+                            "success": True,
+                            "command_type": "quick"
+                        }
+                    )
+                    await self._send_message(client_id, response)
+                    return
+            
+            # Fallback to intelligent command processor
+            if self.intelligent_processor:
+                result = await self.intelligent_processor.process_intelligent_command(command, {})
+                
+                if result.success:
+                    response_text = f"✅ {result.message}"
+                    if result.steps_executed > 0:
+                        response_text += f" (Executed {result.steps_executed} steps in {result.execution_time:.2f}s)"
+                else:
+                    response_text = f"❌ {result.message}"
+                    if result.error:
+                        response_text += f" Error: {result.error}"
+                
+                response = MessageBuilder.create_success_response(
+                    message,
+                    {
+                        "command": command,
+                        "response": response_text,
+                        "success": result.success,
+                        "command_type": "intelligent"
+                    }
+                )
+                await self._send_message(client_id, response)
+            else:
+                await self._send_error_response(client_id, "No command processor available", message.message_id)
+            
+        except Exception as e:
+            self.logger.error(f"Error handling quick command: {e}")
+            await self._send_error_response(client_id, f"Error processing quick command: {e}", message.message_id)
+
+    async def _handle_capability_request(self, message: WebSocketMessage) -> None:
+        """Handle capability request messages"""
+        try:
+            client_id = message.client_id
+            
+            self.logger.info(f"Processing capability request from client {client_id}")
+            
+            # Get capabilities (both built-in and dynamic)
+            from features.command_processing.capability_system import get_capability_manager
+            from features.command_processing.dynamic_capability_system import get_dynamic_capability_manager
+            
+            capability_manager = await get_capability_manager()
+            dynamic_capability_manager = await get_dynamic_capability_manager()
+            
+            # Combine capabilities
+            builtin_capabilities = await capability_manager.get_all_capabilities_info()
+            dynamic_capabilities = await dynamic_capability_manager.get_all_capabilities_info()
+            
+            capabilities = builtin_capabilities + dynamic_capabilities
+            
+            # Send response
+            response = MessageBuilder.create_capability_response(
+                capabilities=capabilities,
+                client_id=client_id
+            )
+            
+            await self._send_message_to_client(client_id, response)
+            
+        except Exception as e:
+            self.logger.error(f"Error handling capability request: {e}")
+            await self._send_error_response(client_id, f"Error getting capabilities: {e}", message.message_id)
+
+    async def _send_error_response(self, client_id: str, error_message: str, message_id: str = None) -> None:
+        """Send error response to client"""
+        try:
+            error_response = MessageBuilder.create_error_response(
+                message=error_message,
+                client_id=client_id,
+                message_id=message_id
+            )
+            await self._send_message(client_id, error_response)
+        except Exception as e:
+            self.logger.error(f"Failed to send error response to {client_id}: {e}")
+    
+    async def _send_message_to_client(self, client_id: str, message: Dict[str, Any]) -> None:
+        """Send message to specific client (alias for _send_message)"""
+        await self._send_message(client_id, message)
 
 # Global WebSocket server instance
 _websocket_server: Optional[WebSocketServer] = None

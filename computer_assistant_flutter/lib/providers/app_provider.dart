@@ -5,12 +5,10 @@ import '../services/websocket_service.dart';
 import '../utils/error_handler.dart';
 import '../models/response_models.dart';
 
-// WebSocket Service Provider
+// WebSocket Service Provider - Singleton
 final webSocketServiceProvider = Provider<WebSocketService>((ref) {
-  final service = WebSocketService();
-  // Initialize WebSocket service on startup
-  service.initialize();
-  return service;
+  // WebSocketService is already a singleton, no need to create new instances
+  return WebSocketService();
 });
 
 // Connection Status Provider
@@ -63,10 +61,10 @@ final screenshotProvider = StateProvider<String?>((ref) {
   return null;
 });
 
-// Error Message Provider
-final errorMessageProvider = StateProvider<String?>((ref) {
-  return null;
-});
+  // Error Message Provider
+  final errorMessageProvider = StateProvider<String?>((ref) {
+    return null;
+  });
 
 // App State Provider
 class AppState {
@@ -85,6 +83,20 @@ class AppState {
   final String? errorMessage;
   final List<Map<String, dynamic>>? ragDocuments;
   final List<Map<String, dynamic>>? ragSearchResults;
+  
+  // Notification fields
+  final String? notificationMessage;
+  final String? notificationType;
+  final int? notificationTimestamp;
+  
+  // Intelligent Command State
+  final bool isIntelligentCommandProcessing;
+  final String? currentIntelligentCommand;
+  final String? intelligentCommandStatus;
+  final double intelligentCommandProgress;
+  final String? currentStep;
+  final List<Map<String, dynamic>>? commandSteps;
+  final List<Map<String, dynamic>>? capabilities;
 
   const AppState({
     this.isConnected = false,
@@ -102,6 +114,16 @@ class AppState {
     this.errorMessage,
     this.ragDocuments,
     this.ragSearchResults,
+    this.notificationMessage,
+    this.notificationType,
+    this.notificationTimestamp,
+    this.isIntelligentCommandProcessing = false,
+    this.currentIntelligentCommand,
+    this.intelligentCommandStatus,
+    this.intelligentCommandProgress = 0.0,
+    this.currentStep,
+    this.commandSteps,
+    this.capabilities,
   });
 
   AppState copyWith({
@@ -120,6 +142,16 @@ class AppState {
     String? errorMessage,
     List<Map<String, dynamic>>? ragDocuments,
     List<Map<String, dynamic>>? ragSearchResults,
+    String? notificationMessage,
+    String? notificationType,
+    int? notificationTimestamp,
+    bool? isIntelligentCommandProcessing,
+    String? currentIntelligentCommand,
+    String? intelligentCommandStatus,
+    double? intelligentCommandProgress,
+    String? currentStep,
+    List<Map<String, dynamic>>? commandSteps,
+    List<Map<String, dynamic>>? capabilities,
   }) {
     return AppState(
       isConnected: isConnected ?? this.isConnected,
@@ -137,6 +169,16 @@ class AppState {
       errorMessage: errorMessage ?? this.errorMessage,
       ragDocuments: ragDocuments ?? this.ragDocuments,
       ragSearchResults: ragSearchResults ?? this.ragSearchResults,
+      notificationMessage: notificationMessage ?? this.notificationMessage,
+      notificationType: notificationType ?? this.notificationType,
+      notificationTimestamp: notificationTimestamp ?? this.notificationTimestamp,
+      isIntelligentCommandProcessing: isIntelligentCommandProcessing ?? this.isIntelligentCommandProcessing,
+      currentIntelligentCommand: currentIntelligentCommand ?? this.currentIntelligentCommand,
+      intelligentCommandStatus: intelligentCommandStatus ?? this.intelligentCommandStatus,
+      intelligentCommandProgress: intelligentCommandProgress ?? this.intelligentCommandProgress,
+      currentStep: currentStep ?? this.currentStep,
+      commandSteps: commandSteps ?? this.commandSteps,
+      capabilities: capabilities ?? this.capabilities,
     );
   }
 }
@@ -208,13 +250,13 @@ class AppStateNotifier extends StateNotifier<AppState> {
           final notification = message.data['message'] as String? ?? '';
           final type = message.data['type'] as String? ?? 'info';
           _logger.i('Notification ($type): $notification');
-          // You can add notification display logic here
-          break;
           
-        case MessageType.error:
-          final error = message.data['error'] as String? ?? '';
-          _logger.e('Server error: $error');
-          // You can add error display logic here
+          // Update state with notification data
+          state = state.copyWith(
+            notificationMessage: notification,
+            notificationType: type,
+            notificationTimestamp: DateTime.now().millisecondsSinceEpoch,
+          );
           break;
           
         case MessageType.pong:
@@ -222,7 +264,6 @@ class AppStateNotifier extends StateNotifier<AppState> {
           break;
           
         case MessageType.status:
-          final serverTime = message.data['server_time'] as double? ?? 0.0;
           final connectedClients = message.data['connected_clients'] as int? ?? 0;
           final uptime = message.data['uptime'] as double? ?? 0.0;
           _logger.d('Server status: $connectedClients clients, uptime: ${uptime.toStringAsFixed(1)}s');
@@ -272,6 +313,80 @@ class AppStateNotifier extends StateNotifier<AppState> {
           }
           break;
           
+        case MessageType.intelligentCommandResponse:
+          final command = message.data['command'] as String? ?? '';
+          final response = message.data['response'] as String? ?? '';
+          final success = message.data['success'] as bool? ?? false;
+          
+          state = state.copyWith(
+            currentIntelligentCommand: command,
+            intelligentCommandStatus: response,
+            isIntelligentCommandProcessing: false,
+          );
+          
+          if (success) {
+            _logger.i('Intelligent command processed successfully: $command -> $response');
+          } else {
+            _logger.w('Intelligent command failed: $command');
+          }
+          break;
+          
+        case MessageType.intelligentCommandProgress:
+          final progress = (message.data['progress'] as num?)?.toDouble() ?? 0.0;
+          final status = message.data['status'] as String? ?? '';
+          final currentStep = message.data['currentStep'] as String? ?? '';
+          final steps = (message.data['steps'] as List?)
+              ?.map((step) => Map<String, dynamic>.from(step))
+              .toList();
+          
+          state = state.copyWith(
+            intelligentCommandProgress: progress,
+            intelligentCommandStatus: status,
+            currentStep: currentStep,
+            commandSteps: steps,
+          );
+          break;
+          
+        case MessageType.intelligentCommandStep:
+          final stepName = message.data['stepName'] as String? ?? '';
+          final stepStatus = message.data['stepStatus'] as String? ?? '';
+          final stepProgress = (message.data['stepProgress'] as num?)?.toDouble() ?? 0.0;
+          
+          state = state.copyWith(
+            currentStep: stepName,
+            intelligentCommandStatus: stepStatus,
+            intelligentCommandProgress: stepProgress,
+          );
+          break;
+          
+        case MessageType.quickCommandResponse:
+          final command = message.data['command'] as String? ?? '';
+          final response = message.data['response'] as String? ?? '';
+          final success = message.data['success'] as bool? ?? false;
+          
+          state = state.copyWith(
+            currentVoiceCommand: command,
+            lastVoiceResponse: response,
+            isProcessing: false,
+          );
+          
+          if (success) {
+            _logger.i('Quick command processed successfully: $command -> $response');
+          } else {
+            _logger.w('Quick command failed: $command');
+          }
+          break;
+          
+        case MessageType.capabilityResponse:
+          final capabilities = (message.data['capabilities'] as List?)
+              ?.map((cap) => Map<String, dynamic>.from(cap))
+              .toList();
+          
+          if (capabilities != null) {
+            state = state.copyWith(capabilities: capabilities);
+          }
+          break;
+          
         case MessageType.error:
           final error = message.data['error'] as String? ?? 'Unknown error';
           state = state.copyWith(errorMessage: error);
@@ -309,6 +424,27 @@ class AppStateNotifier extends StateNotifier<AppState> {
 
   Future<void> sendCommand(String command) async {
     await _webSocketService.sendCommand(command);
+  }
+
+  // Intelligent Command methods
+  Future<void> sendIntelligentCommand(String command, {Map<String, dynamic>? context}) async {
+    state = state.copyWith(
+      isIntelligentCommandProcessing: true,
+      currentIntelligentCommand: command,
+      intelligentCommandStatus: 'Processing intelligent command...',
+      intelligentCommandProgress: 0.0,
+    );
+    
+    await _webSocketService.sendIntelligentCommand(command, context: context);
+  }
+
+  Future<void> sendQuickCommand(String command, {String? language, double? confidence}) async {
+    state = state.copyWith(isProcessing: true);
+    await _webSocketService.sendQuickCommand(command, language: language, confidence: confidence);
+  }
+
+  Future<void> requestCapabilities() async {
+    await _webSocketService.requestCapabilities();
   }
 
   Future<void> sendTerminalCommand(String command) async {

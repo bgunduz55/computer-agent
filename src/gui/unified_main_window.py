@@ -1386,7 +1386,7 @@ Last updated: {system_info.get('timestamp', 'Unknown')}
             model_frame.pack(fill=tk.X, pady=(0, 15))
             
             ttk.Label(model_frame, text="Model:").pack(anchor=tk.W, pady=(0, 5))
-            self.config_model_var = tk.StringVar(value="gpt-oss:20b")
+            self.config_model_var = tk.StringVar(value="deepseek-r1:8b")
             model_entry = ttk.Entry(model_frame, textvariable=self.config_model_var, width=30)
             model_entry.pack(fill=tk.X, pady=(0, 10))
             

@@ -27,7 +27,7 @@ from features.remote_control import get_websocket_server, get_remote_controller
 from features.system_info import get_system_info_manager
 from features.application_control import get_application_manager
 from features.settings import get_settings_manager, SettingCategory
-from features.command_processing import NLPEngine, CommandExecutor, WebSocketCommandHandler
+from features.command_processing import NLPEngine, CommandExecutor
 from plugins import get_plugin_manager
 from .performance_manager import get_performance_manager
 from .security_manager import get_security_manager
@@ -51,7 +51,6 @@ class JARVISCore:
         self.websocket_server = None
         self.nlp_engine = None
         self.command_executor = None
-        self.websocket_command_handler = None
         self.remote_controller = None
         self.settings_manager = None
         self.system_info_manager = None
@@ -222,15 +221,9 @@ class JARVISCore:
                     return False
                 logger.info("Remote controller initialized")
             
-                # Initialize WebSocket command handler
+                # WebSocket server now handles commands directly through intelligent command processor
                 if self.websocket_server:
-                    self.websocket_command_handler = WebSocketCommandHandler(self.websocket_server)
-                    if not await self.websocket_command_handler.initialize():
-                        logger.error("Failed to initialize WebSocket command handler")
-                        return False
-                    # Set command handler in WebSocket server
-                    self.websocket_server.command_handler = self.websocket_command_handler
-                    logger.info("WebSocket command handler initialized")
+                    logger.info("WebSocket server ready for intelligent command processing")
             
             # Setup event handlers
             self._setup_event_handlers()
@@ -423,11 +416,6 @@ class JARVISCore:
                 except Exception as e:
                     logger.warning(f"Error shutting down analytics manager: {e}")
             
-            if self.websocket_command_handler:
-                try:
-                    await self.websocket_command_handler.cleanup()
-                except Exception as e:
-                    logger.warning(f"Error cleaning up WebSocket command handler: {e}")
             
             if self.command_executor:
                 try:
@@ -833,7 +821,6 @@ class JARVISCore:
                 "remote_controller": self.remote_controller is not None,
                 "nlp_engine": self.nlp_engine is not None,
                 "command_executor": self.command_executor is not None,
-                "websocket_command_handler": self.websocket_command_handler is not None
             }
         }
     

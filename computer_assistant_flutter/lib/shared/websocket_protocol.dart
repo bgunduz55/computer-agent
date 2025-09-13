@@ -26,6 +26,21 @@ enum MessageType {
   command,
   commandResponse,
   
+  // Intelligent Commands
+  intelligentCommand,
+  intelligentCommandResponse,
+  intelligentCommandProgress,
+  intelligentCommandStep,
+  
+  // Quick Commands
+  quickCommand,
+  quickCommandResponse,
+  
+  // Capability System
+  capabilityRequest,
+  capabilityResponse,
+  capabilityUpdate,
+  
   // AI Integration
   aiRequest,
   aiResponse,
@@ -143,6 +158,9 @@ class WebSocketMessage {
       MessageType.authRequest,
       MessageType.voiceCommand,
       MessageType.command,
+      MessageType.intelligentCommand,
+      MessageType.quickCommand,
+      MessageType.capabilityRequest,
       MessageType.aiRequest,
       MessageType.systemControl,
       MessageType.fileList,
@@ -162,6 +180,12 @@ class WebSocketMessage {
       MessageType.authResponse,
       MessageType.voiceResponse,
       MessageType.commandResponse,
+      MessageType.intelligentCommandResponse,
+      MessageType.intelligentCommandProgress,
+      MessageType.intelligentCommandStep,
+      MessageType.quickCommandResponse,
+      MessageType.capabilityResponse,
+      MessageType.capabilityUpdate,
       MessageType.aiResponse,
       MessageType.systemResponse,
       MessageType.fileResponse,
@@ -287,6 +311,12 @@ class MessageBuilder {
         return MessageType.voiceResponse;
       case MessageType.command:
         return MessageType.commandResponse;
+      case MessageType.intelligentCommand:
+        return MessageType.intelligentCommandResponse;
+      case MessageType.quickCommand:
+        return MessageType.quickCommandResponse;
+      case MessageType.capabilityRequest:
+        return MessageType.capabilityResponse;
       case MessageType.aiRequest:
         return MessageType.aiResponse;
       case MessageType.systemControl:

@@ -195,7 +195,7 @@ class AIProviderManager:
                             "api_key": "",
                             "enabled": True,
                             "base_url": "http://localhost:11434",
-                            "models": ["gpt-oss:20b"]
+                            "models": ["deepseek-r1:8b"]
                         }
                     },
                     "default_provider": "ollama",
@@ -280,12 +280,12 @@ class AIProviderManager:
     async def generate_response(self, prompt: str, provider: Optional[AIProviderType] = None) -> Optional[AIResponse]:
         """Generate AI response using string prompt"""
         # Add system context to prompt
-        enhanced_prompt = await self._enhance_prompt_with_context(prompt)
+        enhanced_prompt = self._enhance_prompt_with_context(prompt)
         
         # Create AIRequest from string prompt
         request = AIRequest(
             prompt=enhanced_prompt,
-            model=self.config.get("default_model", "gpt-oss:20b"),
+            model=self.config.get("default_model", "deepseek-r1:8b"),
             max_tokens=self.config.get("max_tokens", 1000),
             temperature=self.config.get("temperature", 0.7)
         )
@@ -473,7 +473,7 @@ Available commands for application control:
             current_provider = self.get_current_provider()
             if current_provider:
                 # Get default model from provider
-                default_model = "gpt-oss:20b"  # Default model
+                default_model = "deepseek-r1:8b"  # Default model
                 if current_provider.available_models:
                     default_model = current_provider.available_models[0].id
                 
