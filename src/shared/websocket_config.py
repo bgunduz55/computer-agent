@@ -78,7 +78,7 @@ class WebSocketConfigManager:
             logging_config = config_data.get('logging', {})
             
             config = WebSocketConfig(
-                host=websocket_config.get('host', '100.109.80.8'),
+                host=websocket_config.get('host', '0.0.0.0'),
                 port=websocket_config.get('port', 8765),
                 use_ssl=websocket_config.get('use_ssl', False),
                 ping_interval=websocket_config.get('ping_interval', 30),
@@ -108,7 +108,7 @@ class WebSocketConfigManager:
     def _get_default_config(self) -> WebSocketConfig:
         """Get default configuration"""
         return WebSocketConfig(
-            host='100.109.80.8',
+            host='0.0.0.0',
             port=8765,
             use_ssl=False,
             ping_interval=60,  # 30'dan 60'a çıkarıldı

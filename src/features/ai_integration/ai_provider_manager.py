@@ -154,7 +154,7 @@ class BaseAIProvider(ABC):
 class AIProviderManager:
     """Central AI provider management system"""
     
-    def __init__(self, config_path: str = "config/ai_providers.json"):
+    def __init__(self, config_path: str = "config/ai_providers.json", settings_manager=None):
         self.config_path = Path(config_path)
         self.providers: Dict[AIProviderType, BaseAIProvider] = {}
         self.default_provider: Optional[AIProviderType] = None
@@ -162,13 +162,19 @@ class AIProviderManager:
         self.model_cache: Dict[str, ModelInfo] = {}
         self.logger = logging.getLogger(__name__)
         self._initialized = False
+        self.settings_manager = settings_manager
         
         # Load configuration
         self.config = self._load_config()
     
     def _load_config(self) -> Dict[str, Any]:
-        """Load AI provider configuration"""
+        """Load AI provider configuration from settings or file"""
         try:
+            # First try to load from settings manager
+            if self.settings_manager:
+                return self._load_from_settings()
+            
+            # Fallback to file
             if self.config_path.exists():
                 with open(self.config_path, 'r', encoding='utf-8') as f:
                     return json.load(f)
@@ -214,6 +220,91 @@ class AIProviderManager:
             self.logger.error(f"Failed to load AI provider config: {e}")
             return {}
     
+    def _load_from_settings(self) -> Dict[str, Any]:
+        """Load configuration from settings manager"""
+        try:
+            if not self.settings_manager:
+                return self._get_default_config()
+            
+            # Get settings using the new simple settings manager
+            default_provider = self.settings_manager.get_setting('ai', 'default_provider', 'ollama')
+            default_model = self.settings_manager.get_setting('ai', 'default_model', 'gemini-1.5-flash')
+            max_tokens = self.settings_manager.get_setting('ai', 'max_tokens', 1000)
+            temperature = self.settings_manager.get_setting('ai', 'temperature', 0.7)
+            
+            return {
+                "default_provider": default_provider,
+                "default_model": default_model,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "providers": {
+                    "openai": {
+                        "api_key": self.settings_manager.get_setting('ai', 'openai_api_key', ''),
+                        "enabled": self.settings_manager.get_setting('ai', 'openai_enabled', False),
+                        "models": ["gpt-4", "gpt-3.5-turbo"]
+                    },
+                    "google_gemini": {
+                        "api_key": self.settings_manager.get_setting('ai', 'gemini_api_key', ''),
+                        "enabled": self.settings_manager.get_setting('ai', 'gemini_enabled', False),
+                        "models": ["gemini-2.5-flash", "gemini-pro"]
+                    },
+                    "openrouter": {
+                        "api_key": self.settings_manager.get_setting('ai', 'openrouter_api_key', ''),
+                        "enabled": self.settings_manager.get_setting('ai', 'openrouter_enabled', False),
+                        "models": ["meta-llama/llama-2-70b-chat", "mistralai/mistral-7b-instruct"]
+                    },
+                    "anthropic": {
+                        "api_key": self.settings_manager.get_setting('ai', 'anthropic_api_key', ''),
+                        "enabled": self.settings_manager.get_setting('ai', 'anthropic_enabled', False),
+                        "models": ["claude-3-sonnet", "claude-3-haiku"]
+                    },
+                    "ollama": {
+                        "api_key": "",
+                        "enabled": self.settings_manager.get_setting('ai', 'ollama_enabled', True),
+                        "base_url": "http://localhost:11434",
+                        "models": [default_model]
+                    }
+                },
+                "fallback_provider": "ollama",
+                "cost_optimization": True,
+                "rate_limiting": True
+            }
+        except Exception as e:
+            self.logger.error(f"Failed to load configuration from settings: {e}")
+            return self._get_default_config()
+    
+    def _get_default_config(self) -> Dict[str, Any]:
+        """Get default configuration"""
+        return {
+            "providers": {
+                "openai": {
+                    "api_key": "",
+                    "enabled": False,
+                    "models": ["gpt-4", "gpt-3.5-turbo", "text-embedding-ada-002"]
+                },
+                "google_gemini": {
+                    "api_key": "",
+                    "enabled": False,
+                    "models": ["gemini-pro", "gemini-pro-vision"]
+                },
+                "openrouter": {
+                    "api_key": "",
+                    "enabled": False,
+                    "models": ["openai/gpt-4", "anthropic/claude-3-sonnet"]
+                },
+                "ollama": {
+                    "api_key": "",
+                    "enabled": True,
+                    "base_url": "http://localhost:11434",
+                    "models": ["deepseek-r1:8b"]
+                }
+            },
+            "default_provider": "ollama",
+            "fallback_provider": "openai",
+            "cost_optimization": True,
+            "rate_limiting": True
+        }
+    
     def initialize(self) -> bool:
         """Initialize AI provider manager"""
         if self._initialized:
@@ -236,7 +327,18 @@ class AIProviderManager:
             
             # Set default provider
             default_name = self.config.get("default_provider", "ollama")
-            self.default_provider = AIProviderType(default_name)
+            # Map settings provider names to enum values
+            provider_mapping = {
+                "gemini": "google_gemini",
+                "google_gemini": "google_gemini",
+                "openai": "openai",
+                "openrouter": "openrouter",
+                "anthropic": "anthropic",
+                "ollama": "ollama",
+                "cohere": "cohere"
+            }
+            mapped_name = provider_mapping.get(default_name, "ollama")
+            self.default_provider = AIProviderType(mapped_name)
             self.current_provider = self.default_provider
             
             # Cache available models
@@ -530,11 +632,11 @@ Available commands for application control:
 # Global instance
 _ai_manager: Optional[AIProviderManager] = None
 
-def get_ai_manager() -> AIProviderManager:
+def get_ai_manager(settings_manager=None) -> AIProviderManager:
     """Get global AI manager instance"""
     global _ai_manager
     if _ai_manager is None:
-        _ai_manager = AIProviderManager()
+        _ai_manager = AIProviderManager(settings_manager=settings_manager)
     return _ai_manager
 
 def cleanup_ai_manager() -> None:

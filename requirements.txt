@@ -48,4 +48,17 @@ PyJWT>=2.8.0
 bcrypt>=4.1.0
 
 # System Tray
-pystray>=0.19.4 
+pystray>=0.19.4
+
+# Web API
+fastapi>=0.104.0
+uvicorn>=0.24.0
+pydantic>=2.5.0
+
+# Browser Automation
+selenium>=4.15.0
+playwright>=1.40.0
+webdriver-manager>=4.0.1
+
+# Mobile Monitoring
+websockets>=12.0 

@@ -1,0 +1,38 @@
+[
+  {
+    "log_id": "7aa4f6d6-4a5a-41e9-848b-21695633bd52",
+    "timestamp": 1757916446.088922,
+    "level": "LogLevel.INFO",
+    "event_type": "EventType.COMMAND_EXECUTION",
+    "message": "Test command executed successfully",
+    "session_id": "test_session_123",
+    "user_id": "test_user",
+    "component": "test_component",
+    "metadata": {
+      "command": "echo hello",
+      "args": []
+    },
+    "tags": [
+      "test",
+      "demo"
+    ],
+    "correlation_id": null,
+    "duration": 1.5,
+    "success": true
+  },
+  {
+    "log_id": "5ac780ae-8860-41cd-ab0c-f04dc82391a8",
+    "timestamp": 1757916446.0892396,
+    "level": "LogLevel.ERROR",
+    "event_type": "EventType.ERROR_EVENT",
+    "message": "Test error occurred",
+    "session_id": "test_session_123",
+    "user_id": null,
+    "component": "error_component",
+    "metadata": {},
+    "tags": [],
+    "correlation_id": null,
+    "duration": null,
+    "success": false
+  }
+]

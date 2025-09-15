@@ -21,7 +21,7 @@ from PIL import Image, ImageDraw
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.jarvis_core import get_jarvis_core
-from features.settings import get_settings_manager
+from features.settings.simple_settings_manager import get_simple_settings_manager
 from .voice_commands import VoiceCommandHandler, VoiceCommandsWindow
 from .ai_integration import AIIntegrationWindow
 from .terminal_integration import TerminalIntegrationWindow
@@ -318,9 +318,24 @@ Available Voice Commands:
         provider_frame.pack(fill=tk.X, padx=10, pady=5)
         
         ttk.Label(provider_frame, text="Current Provider:").pack(side=tk.LEFT)
-        self.ai_provider_var = tk.StringVar(value="Ollama")
+        
+        # Load current provider from settings
+        current_provider = "Ollama"
+        if self.settings_manager:
+            provider_name = self.settings_manager.get_setting('ai', 'default_provider', 'ollama')
+            provider_mapping = {
+                "gemini": "Google Gemini",
+                "google_gemini": "Google Gemini", 
+                "openai": "OpenAI",
+                "openrouter": "OpenRouter",
+                "anthropic": "Anthropic",
+                "ollama": "Ollama"
+            }
+            current_provider = provider_mapping.get(provider_name, "Ollama")
+        
+        self.ai_provider_var = tk.StringVar(value=current_provider)
         provider_combo = ttk.Combobox(provider_frame, textvariable=self.ai_provider_var,
-                                     values=["Ollama", "OpenAI", "Google Gemini", "Anthropic"],
+                                     values=["Ollama", "OpenAI", "Google Gemini", "OpenRouter", "Anthropic"],
                                      state="readonly", width=20)
         provider_combo.pack(side=tk.LEFT, padx=(10, 20))
         
@@ -406,7 +421,7 @@ Available Voice Commands:
         """JARVIS'i başlat"""
         try:
             self.jarvis_core = get_jarvis_core()
-            self.settings_manager = get_settings_manager()
+            self.settings_manager = get_simple_settings_manager()
             
             # Voice handler'ı initialize et
             self.voice_handler = VoiceCommandHandler(self.jarvis_core)
@@ -701,8 +716,9 @@ Network:
     def open_settings(self):
         """Ayarları aç"""
         try:
-            from features.settings import show_settings
-            show_settings()
+            from features.settings.simple_settings_ui import SimpleSettingsUI
+            settings_ui = SimpleSettingsUI(self.root)
+            settings_ui.show_settings()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to open settings: {e}")
     

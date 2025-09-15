@@ -256,7 +256,7 @@ class WebSocketServer:
             remote_settings = self.settings.get('remote', {})
             
             self.host = remote_settings.get('websocket_host', self.config.host)
-            self.port = remote_settings.get('websocket_port', 8766)
+            self.port = remote_settings.get('websocket_port', 8765)
             
             # Start server with new settings
             await self.start()
@@ -278,7 +278,7 @@ class WebSocketServer:
             old_port = self.port
             
             self.host = remote_settings.get('websocket_host', self.config.host)
-            self.port = remote_settings.get('websocket_port', 8766)
+            self.port = remote_settings.get('websocket_port', 8765)
             
             # Check if settings changed
             if old_host != self.host or old_port != self.port:
@@ -1217,6 +1217,7 @@ class WebSocketServer:
             # Try quick commands handler first
             if self.quick_commands_handler:
                 quick_result = await self.quick_commands_handler.process_command(command)
+                self.logger.info(f"Quick command result: {quick_result}")
                 if quick_result["success"]:
                     # Send quick command response
                     response_text = f"⚡ {quick_result['message']}"

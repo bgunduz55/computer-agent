@@ -46,10 +46,16 @@ class GeminiProvider(BaseAIProvider):
                 "Content-Type": "application/json"
             }
             
-            self.session = aiohttp.ClientSession(
-                headers=headers,
-                timeout=aiohttp.ClientTimeout(total=300)
-            )
+            # Create session in the current event loop
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                # No event loop running, create a new one
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            # Don't create session here, create it in generate_response
+            self.session = None  # Will be created in generate_response
             
             # Load available models
             self._load_models()
@@ -65,15 +71,15 @@ class GeminiProvider(BaseAIProvider):
             # Default Gemini models
             default_models = [
                 ModelInfo(
-                    id="gemini-pro",
-                    name="Gemini Pro",
+                    id="gemini-1.5-flash",
+                    name="Gemini 1.5 Flash",
                     provider=AIProviderType.GOOGLE_GEMINI,
                     model_type=ModelType.CHAT,
-                    max_tokens=32768,
-                    cost_per_token=0.0000005,  # Approximate cost per token
-                    context_length=32768,
+                    max_tokens=1048576,
+                    cost_per_token=0.000000075,
+                    context_length=1048576,
                     is_available=True,
-                    description="Most capable Gemini model for text generation"
+                    description="Fast and efficient Gemini model"
                 ),
                 ModelInfo(
                     id="gemini-pro-vision",
@@ -117,10 +123,16 @@ class GeminiProvider(BaseAIProvider):
     
     async def generate_response(self, request: AIRequest) -> AIResponse:
         """Generate response using Gemini API"""
-        if not self.session:
-            raise RuntimeError("Gemini provider not initialized")
-        
+        # Always create a fresh session for each request to avoid event loop issues
+        session = None
         try:
+            headers = {
+                "Content-Type": "application/json"
+            }
+            session = aiohttp.ClientSession(
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=300)
+            )
             start_time = time.time()
             
             # Prepare request payload
@@ -152,7 +164,7 @@ class GeminiProvider(BaseAIProvider):
             url = f"{self.base_url}/models/{request.model}:generateContent"
             params = {"key": self.api_key}
             
-            async with self.session.post(
+            async with session.post(
                 url,
                 json=payload,
                 params=params
@@ -203,13 +215,26 @@ class GeminiProvider(BaseAIProvider):
         except Exception as e:
             self.logger.error(f"Failed to generate response with Gemini: {e}")
             raise
+        finally:
+            # Always close the session
+            if session:
+                try:
+                    await session.close()
+                except Exception as e:
+                    self.logger.warning(f"Error closing Gemini session: {e}")
     
     async def generate_embedding(self, text: str, model: str = None) -> List[float]:
         """Generate text embedding using Gemini API"""
-        if not self.session:
-            raise RuntimeError("Gemini provider not initialized")
-        
+        # Create a fresh session for embedding
+        session = None
         try:
+            headers = {
+                "Content-Type": "application/json"
+            }
+            session = aiohttp.ClientSession(
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=300)
+            )
             # Use default embedding model if not specified
             if not model:
                 model = "embedding-001"  # Default Gemini embedding model
@@ -226,7 +251,7 @@ class GeminiProvider(BaseAIProvider):
             url = f"{self.base_url}/models/{model}:embedContent"
             params = {"key": self.api_key}
             
-            async with self.session.post(
+            async with session.post(
                 url,
                 json=payload,
                 params=params
@@ -247,6 +272,13 @@ class GeminiProvider(BaseAIProvider):
         except Exception as e:
             self.logger.error(f"Failed to generate embedding with Gemini: {e}")
             raise
+        finally:
+            # Always close the session
+            if session:
+                try:
+                    await session.close()
+                except Exception as e:
+                    self.logger.warning(f"Error closing Gemini session: {e}")
     
     def get_model_info(self, model_id: str) -> Optional[ModelInfo]:
         """Get model information"""
@@ -280,6 +312,17 @@ class GeminiProvider(BaseAIProvider):
     def cleanup(self) -> None:
         """Cleanup Gemini provider"""
         if self.session:
-            asyncio.create_task(self.session.close())
-            self.session = None
+            try:
+                # Close session in current event loop
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # Schedule cleanup
+                    asyncio.create_task(self.session.close())
+                else:
+                    # Run cleanup directly
+                    loop.run_until_complete(self.session.close())
+            except Exception as e:
+                self.logger.warning(f"Error closing Gemini session: {e}")
+            finally:
+                self.session = None
         super().cleanup()
