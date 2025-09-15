@@ -1,0 +1,81 @@
+[
+  {
+    "timestamp": "2025-09-15T16:02:41.317080",
+    "command_id": "test-001",
+    "command_text": "yaz Merhaba dünya",
+    "command_type": "quick",
+    "log_level": "success",
+    "success": true,
+    "error_message": null,
+    "execution_time": 0.5,
+    "ai_response": null,
+    "capabilities_used": [
+      "text_input"
+    ],
+    "steps_executed": [
+      "Extracted text",
+      "Typed text"
+    ],
+    "steps_failed": [],
+    "user_feedback": null,
+    "improvement_suggestions": [],
+    "context": {
+      "matched_keyword": "yaz",
+      "priority": 100
+    }
+  },
+  {
+    "timestamp": "2025-09-15T16:02:41.317529",
+    "command_id": "test-002",
+    "command_text": "yaz Türkiye'nin başkenti neresidir",
+    "command_type": "quick",
+    "log_level": "error",
+    "success": false,
+    "error_message": "Capability not found: text_input",
+    "execution_time": 0.2,
+    "ai_response": null,
+    "capabilities_used": [
+      "text_input"
+    ],
+    "steps_executed": [],
+    "steps_failed": [
+      "Failed to find text_input capability"
+    ],
+    "user_feedback": null,
+    "improvement_suggestions": [
+      "Fix capability registration",
+      "Add error handling"
+    ],
+    "context": {
+      "matched_keyword": "yaz",
+      "priority": 100
+    }
+  },
+  {
+    "timestamp": "2025-09-15T16:02:41.317960",
+    "command_id": "test-003",
+    "command_text": "Find music on YouTube and play it",
+    "command_type": "intelligent",
+    "log_level": "success",
+    "success": true,
+    "error_message": null,
+    "execution_time": 2.5,
+    "ai_response": null,
+    "capabilities_used": [
+      "youtube_search",
+      "youtube_automation"
+    ],
+    "steps_executed": [
+      "Search YouTube",
+      "Select video",
+      "Play video"
+    ],
+    "steps_failed": [],
+    "user_feedback": null,
+    "improvement_suggestions": [],
+    "context": {
+      "complexity": "moderate",
+      "ai_confidence": 0.85
+    }
+  }
+]

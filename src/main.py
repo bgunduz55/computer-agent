@@ -19,7 +19,7 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).parent))
 
 from core.jarvis_core import get_jarvis_core, cleanup_jarvis_core
-from features.settings import get_settings_manager
+from features.settings.simple_settings_manager import get_simple_settings_manager
 
 # Setup logging
 logging.basicConfig(
@@ -43,7 +43,7 @@ class JARVISApplication:
             logger.info("Initializing JARVIS Computer Assistant...")
             
             # Initialize settings manager
-            self.settings_manager = get_settings_manager()
+            self.settings_manager = get_simple_settings_manager()
             
             # Initialize JARVIS core
             self.jarvis_core = get_jarvis_core()
@@ -74,6 +74,10 @@ class JARVISApplication:
             
             self.is_running = True
             logger.info("JARVIS Computer Assistant is running!")
+            # Get WebSocket settings from settings manager
+            host = self.jarvis_core.settings_manager.get_setting('remote', 'websocket_host', '0.0.0.0')
+            port = self.jarvis_core.settings_manager.get_setting('remote', 'websocket_port', 8765)
+            logger.info(f"WebSocket server: ws://{host}:{port}")
             logger.info("Press Ctrl+C to stop")
             
             # Keep running until interrupted
@@ -219,8 +223,12 @@ async def main():
     # Handle settings UI
     if args.settings:
         try:
-            from features.settings import show_settings
-            show_settings()
+            from features.settings.simple_settings_ui import SimpleSettingsUI
+            settings_ui = SimpleSettingsUI()
+            settings_ui.show_settings()
+            # Keep the UI running
+            import tkinter as tk
+            tk.mainloop()
             return 0
         except Exception as e:
             logger.error(f"Failed to open settings UI: {e}")

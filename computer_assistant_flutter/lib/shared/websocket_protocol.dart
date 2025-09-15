@@ -78,6 +78,65 @@ enum MessageType {
   screenshotResponse,
   keyboardInput,
   mouseInput,
+  
+  // Progress Tracking (Backend T010)
+  progressStart,
+  progressUpdate,
+  progressComplete,
+  progressError,
+  
+  // Feedback System (Backend T010)
+  feedbackRequest,
+  feedbackResponse,
+  feedbackSubmit,
+  
+  // Terminal Session Management (Backend T014)
+  terminalSessionCreate,
+  terminalSessionResponse,
+  terminalSessionUpdate,
+  terminalSessionList,
+  terminalSessionExecute,
+  terminalSessionOutput,
+  terminalSessionHistory,
+  terminalSessionSearch,
+  terminalSessionGroup,
+  
+  // Analytics and Logging (Backend T015)
+  analyticsRequest,
+  analyticsResponse,
+  analyticsMetrics,
+  analyticsReport,
+  logEvent,
+  logResponse,
+  metricsRecord,
+  metricsResponse,
+  
+  // Context-Aware Execution (Backend T005)
+  contextUpdate,
+  contextResponse,
+  memoryStore,
+  memoryRetrieve,
+  memorySearch,
+  
+  // Error Recovery and Learning (Backend T006)
+  errorLog,
+  errorRecovery,
+  learningUpdate,
+  learningResponse,
+  
+  // Advanced Web Automation (Backend T002, T003)
+  webAutomationStart,
+  webAutomationResponse,
+  webAutomationProgress,
+  webAutomationComplete,
+  webAutomationScreenshot,
+  
+  // Mobile Monitoring (Backend T012)
+  mobileStatus,
+  mobileStatusResponse,
+  mobileCommand,
+  mobileCommandResponse,
+  mobileNotification,
 }
 
 enum MessageStatus {

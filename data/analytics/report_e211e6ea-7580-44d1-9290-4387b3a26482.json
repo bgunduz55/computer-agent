@@ -1,0 +1,47 @@
+{
+  "report_id": "e211e6ea-7580-44d1-9290-4387b3a26482",
+  "generated_at": 1757916447.099915,
+  "start_time": 1757912847.0999126,
+  "end_time": 1757916447.0999126,
+  "report_type": "performance",
+  "summary": {
+    "total_events": 2,
+    "total_metrics": 2,
+    "event_breakdown": {
+      "command_execution": 1,
+      "error_event": 1
+    },
+    "level_breakdown": {
+      "info": 1,
+      "error": 1
+    },
+    "success_rate": 50.0,
+    "average_duration": 1.5,
+    "unique_sessions": 1,
+    "unique_users": 1
+  },
+  "detailed_data": {
+    "hourly_activity": {
+      "9": 2
+    },
+    "command_patterns": {
+      "echo hello": 1
+    },
+    "error_analysis": {
+      "error_component": {
+        "count": 1,
+        "messages": [
+          "Test error occurred"
+        ]
+      }
+    },
+    "performance_trends": {},
+    "user_behavior": {},
+    "resource_usage": {}
+  },
+  "recommendations": [
+    "High error rate detected. Consider reviewing command validation and error handling.",
+    "Peak usage detected at hour 9. Consider scaling resources during this time.",
+    "Component 'error_component' has the highest error count. Consider debugging this component."
+  ]
+}

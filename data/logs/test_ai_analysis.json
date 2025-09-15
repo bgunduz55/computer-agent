@@ -1,0 +1,47 @@
+{
+  "summary": {
+    "total_commands": 3,
+    "successful_commands": 2,
+    "failed_commands": 1,
+    "success_rate": 66.67
+  },
+  "error_patterns": {
+    "Capability not found": 1
+  },
+  "capability_failures": {
+    "text_input": 1
+  },
+  "improvement_suggestions": [
+    "Fix capability registration",
+    "Add error handling"
+  ],
+  "recent_failures": [
+    {
+      "timestamp": "2025-09-15T16:02:41.317529",
+      "command_id": "test-002",
+      "command_text": "yaz Türkiye'nin başkenti neresidir",
+      "command_type": "quick",
+      "log_level": "error",
+      "success": false,
+      "error_message": "Capability not found: text_input",
+      "execution_time": 0.2,
+      "ai_response": null,
+      "capabilities_used": [
+        "text_input"
+      ],
+      "steps_executed": [],
+      "steps_failed": [
+        "Failed to find text_input capability"
+      ],
+      "user_feedback": null,
+      "improvement_suggestions": [
+        "Fix capability registration",
+        "Add error handling"
+      ],
+      "context": {
+        "matched_keyword": "yaz",
+        "priority": 100
+      }
+    }
+  ]
+}

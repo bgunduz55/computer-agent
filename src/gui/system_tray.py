@@ -19,7 +19,7 @@ import io
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.jarvis_core import get_jarvis_core
-from features.settings import get_settings_manager
+from features.settings.simple_settings_manager import get_simple_settings_manager
 
 logger = logging.getLogger(__name__)
 
@@ -135,7 +135,7 @@ class JARVISSystemTray:
         
         # Add some sample logs
         log_text.insert(tk.END, "2025-09-10 02:14:58 - JARVIS Computer Assistant is running!\n")
-        log_text.insert(tk.END, "2025-09-10 02:14:58 - WebSocket server started on 100.109.80.8:8765\n")
+        log_text.insert(tk.END, "2025-09-10 02:14:58 - WebSocket server started on 0.0.0.0:8765\n")
         log_text.insert(tk.END, "2025-09-10 02:14:58 - Authentication token: caeed0c5-2e69-430b-9c20-9bc82637dfc0\n")
         log_text.insert(tk.END, "2025-09-10 02:14:58 - Press Ctrl+C to stop\n")
         log_text.config(state=tk.DISABLED)
@@ -156,8 +156,9 @@ class JARVISSystemTray:
     def show_settings(self, icon=None, item=None):
         """Show settings window"""
         try:
-            from features.settings import show_settings
-            show_settings()
+            from features.settings.simple_settings_ui import SimpleSettingsUI
+            settings_ui = SimpleSettingsUI()
+            settings_ui.show_settings()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to open settings: {e}")
     
@@ -332,7 +333,7 @@ Services:
         try:
             # Initialize JARVIS in main thread
             self.jarvis_core = get_jarvis_core()
-            self.settings_manager = get_settings_manager()
+            self.settings_manager = get_simple_settings_manager()
             
             # Create system tray icon
             icon_image = self.create_icon_image()

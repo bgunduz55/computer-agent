@@ -10,7 +10,7 @@ async def test_websocket_integration():
     """Test WebSocket server with intelligent command processing"""
     
     # Create WebSocket server
-    server = WebSocketServer(host="localhost", port=8766)
+    server = WebSocketServer(host="localhost", port=8765)
     
     # Initialize server
     if not await server.initialize():
@@ -21,11 +21,11 @@ async def test_websocket_integration():
     
     # Start server
     await server.start()
-    print("✅ WebSocket server started on localhost:8766")
+    print("✅ WebSocket server started on localhost:8765")
     
     # Test client connection
     try:
-        async with websockets.connect("ws://localhost:8766") as websocket:
+        async with websockets.connect("ws://localhost:8765") as websocket:
             print("✅ Connected to WebSocket server")
             
             # Test voice command

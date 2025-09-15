@@ -21,7 +21,7 @@ class WebSocketConfig {
 
   const WebSocketConfig({
     this.host = '100.109.80.8',
-    this.port = 8766,
+    this.port = 8765,
     this.useSSL = false,
     this.pingInterval = 60,
     this.pingTimeout = 10,

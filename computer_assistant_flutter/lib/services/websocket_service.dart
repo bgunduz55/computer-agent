@@ -485,6 +485,272 @@ class WebSocketService {
     await sendMessage(message);
   }
 
+  // ===== NEW BACKEND INTEGRATION METHODS =====
+
+  /// Send progress tracking request
+  Future<void> requestProgressTracking(String executionId) async {
+    final message = WebSocketMessage(
+      type: MessageType.progressStart,
+      data: {'execution_id': executionId},
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(message);
+  }
+
+  /// Send feedback
+  Future<void> sendFeedback(String executionId, Map<String, dynamic> feedback) async {
+    final message = WebSocketMessage(
+      type: MessageType.feedbackSubmit,
+      data: {
+        'execution_id': executionId,
+        'feedback': feedback,
+      },
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(message);
+  }
+
+  /// Create terminal session
+  Future<void> createTerminalSession({
+    String? name,
+    String? sessionType,
+    String? terminalType,
+    String? workingDirectory,
+    String? description,
+    List<String>? tags,
+  }) async {
+    final message = WebSocketMessage(
+      type: MessageType.terminalSessionCreate,
+      data: {
+        if (name != null) 'name': name,
+        if (sessionType != null) 'session_type': sessionType,
+        if (terminalType != null) 'terminal_type': terminalType,
+        if (workingDirectory != null) 'working_directory': workingDirectory,
+        if (description != null) 'description': description,
+        if (tags != null) 'tags': tags,
+      },
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(message);
+  }
+
+  /// Execute terminal command in session
+  Future<void> executeTerminalSessionCommand(String sessionId, String command, {int? timeout}) async {
+    final message = WebSocketMessage(
+      type: MessageType.terminalSessionExecute,
+      data: {
+        'session_id': sessionId,
+        'command': command,
+        if (timeout != null) 'timeout': timeout,
+      },
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(message);
+  }
+
+  /// List terminal sessions
+  Future<void> listTerminalSessions() async {
+    final message = WebSocketMessage(
+      type: MessageType.terminalSessionList,
+      data: {},
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(message);
+  }
+
+  /// Get terminal session history
+  Future<void> getTerminalSessionHistory(String sessionId, {int? limit, String? query}) async {
+    final message = WebSocketMessage(
+      type: MessageType.terminalSessionHistory,
+      data: {
+        'session_id': sessionId,
+        if (limit != null) 'limit': limit,
+        if (query != null) 'query': query,
+      },
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(message);
+  }
+
+  /// Request analytics data
+  Future<void> requestAnalytics({String? reportType, int? hours}) async {
+    final message = WebSocketMessage(
+      type: MessageType.analyticsRequest,
+      data: {
+        if (reportType != null) 'report_type': reportType,
+        if (hours != null) 'hours': hours,
+      },
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(message);
+  }
+
+  /// Request real-time metrics
+  Future<void> requestRealTimeMetrics() async {
+    final message = WebSocketMessage(
+      type: MessageType.analyticsMetrics,
+      data: {},
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(message);
+  }
+
+  /// Log event
+  Future<void> logEvent(String level, String eventType, String message, {
+    String? sessionId,
+    String? component,
+    Map<String, dynamic>? metadata,
+    List<String>? tags,
+  }) async {
+    final logMessage = WebSocketMessage(
+      type: MessageType.logEvent,
+      data: {
+        'level': level,
+        'event_type': eventType,
+        'message': message,
+        if (sessionId != null) 'session_id': sessionId,
+        if (component != null) 'component': component,
+        if (metadata != null) 'metadata': metadata,
+        if (tags != null) 'tags': tags,
+      },
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(logMessage);
+  }
+
+  /// Record metric
+  Future<void> recordMetric(String metricType, String name, dynamic value, {
+    String? unit,
+    Map<String, String>? labels,
+    Map<String, dynamic>? metadata,
+  }) async {
+    final message = WebSocketMessage(
+      type: MessageType.metricsRecord,
+      data: {
+        'metric_type': metricType,
+        'name': name,
+        'value': value,
+        if (unit != null) 'unit': unit,
+        if (labels != null) 'labels': labels,
+        if (metadata != null) 'metadata': metadata,
+      },
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(message);
+  }
+
+  /// Update execution context
+  Future<void> updateExecutionContext(String sessionId, Map<String, dynamic> contextUpdates) async {
+    final message = WebSocketMessage(
+      type: MessageType.contextUpdate,
+      data: {
+        'session_id': sessionId,
+        'context_updates': contextUpdates,
+      },
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(message);
+  }
+
+  /// Store memory entry
+  Future<void> storeMemoryEntry(String sessionId, String key, dynamic value, {
+    String? contextType,
+    String? priority,
+    List<String>? tags,
+    double? expiresAt,
+  }) async {
+    final message = WebSocketMessage(
+      type: MessageType.memoryStore,
+      data: {
+        'session_id': sessionId,
+        'key': key,
+        'value': value,
+        if (contextType != null) 'context_type': contextType,
+        if (priority != null) 'priority': priority,
+        if (tags != null) 'tags': tags,
+        if (expiresAt != null) 'expires_at': expiresAt,
+      },
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(message);
+  }
+
+  /// Search memory entries
+  Future<void> searchMemoryEntries(String sessionId, {
+    String? query,
+    String? contextType,
+    String? priority,
+    List<String>? tags,
+    int? limit,
+  }) async {
+    final message = WebSocketMessage(
+      type: MessageType.memorySearch,
+      data: {
+        'session_id': sessionId,
+        if (query != null) 'query': query,
+        if (contextType != null) 'context_type': contextType,
+        if (priority != null) 'priority': priority,
+        if (tags != null) 'tags': tags,
+        if (limit != null) 'limit': limit,
+      },
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(message);
+  }
+
+  /// Start web automation
+  Future<void> startWebAutomation(String action, Map<String, dynamic> parameters) async {
+    final message = WebSocketMessage(
+      type: MessageType.webAutomationStart,
+      data: {
+        'action': action,
+        'parameters': parameters,
+      },
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(message);
+  }
+
+  /// Send mobile status
+  Future<void> sendMobileStatus(Map<String, dynamic> status) async {
+    final message = WebSocketMessage(
+      type: MessageType.mobileStatus,
+      data: status,
+      timestamp: DateTime.now().millisecondsSinceEpoch / 1000.0,
+      messageId: _generateMessageId(),
+    );
+    
+    await sendMessage(message);
+  }
+
   /// Handle incoming messages
   void _onMessage(dynamic data) {
     try {
@@ -520,6 +786,61 @@ class WebSocketService {
         break;
       case MessageType.pong:
         _handlePong(message);
+        break;
+      // Intelligent Commands
+      case MessageType.intelligentCommandResponse:
+        _handleIntelligentCommandResponse(message);
+        break;
+      case MessageType.intelligentCommandProgress:
+        _handleIntelligentCommandProgress(message);
+        break;
+      case MessageType.intelligentCommandStep:
+        _handleIntelligentCommandStep(message);
+        break;
+      // Progress Tracking
+      case MessageType.progressStart:
+      case MessageType.progressUpdate:
+      case MessageType.progressComplete:
+      case MessageType.progressError:
+        _handleProgressMessage(message);
+        break;
+      // Terminal Session Management
+      case MessageType.terminalSessionResponse:
+      case MessageType.terminalSessionOutput:
+      case MessageType.terminalSessionHistory:
+      case MessageType.terminalSessionList:
+        _handleTerminalSessionMessage(message);
+        break;
+      // Analytics and Logging
+      case MessageType.analyticsResponse:
+      case MessageType.analyticsMetrics:
+      case MessageType.analyticsReport:
+      case MessageType.logResponse:
+      case MessageType.metricsResponse:
+        _handleAnalyticsMessage(message);
+        break;
+      // Context-Aware Execution
+      case MessageType.contextResponse:
+      case MessageType.memoryRetrieve:
+      case MessageType.memorySearch:
+        _handleContextMessage(message);
+        break;
+      // Web Automation
+      case MessageType.webAutomationResponse:
+      case MessageType.webAutomationProgress:
+      case MessageType.webAutomationComplete:
+      case MessageType.webAutomationScreenshot:
+        _handleWebAutomationMessage(message);
+        break;
+      // Mobile Monitoring
+      case MessageType.mobileStatusResponse:
+      case MessageType.mobileCommandResponse:
+      case MessageType.mobileNotification:
+        _handleMobileMessage(message);
+        break;
+      // Feedback System
+      case MessageType.feedbackResponse:
+        _handleFeedbackMessage(message);
         break;
       default:
         if (_config.loggingEnabled) {
@@ -564,6 +885,106 @@ class WebSocketService {
     if (_config.loggingEnabled) {
       _logger.d('Received pong from server');
     }
+  }
+
+  // ===== NEW MESSAGE HANDLERS =====
+
+  /// Handle progress tracking messages
+  void _handleProgressMessage(WebSocketMessage message) {
+    final executionId = message.data['execution_id'] as String?;
+    final progress = message.data['progress'] as double?;
+    final status = message.data['status'] as String?;
+    final message_text = message.data['message'] as String?;
+    
+    if (_config.loggingEnabled) {
+      _logger.d('Progress update: $executionId - $status (${progress?.toStringAsFixed(1)}%)');
+    }
+    
+    // Forward to message stream for UI consumption
+    _messageController?.add(message);
+  }
+
+  /// Handle terminal session messages
+  void _handleTerminalSessionMessage(WebSocketMessage message) {
+    final sessionId = message.data['session_id'] as String?;
+    final output = message.data['output'] as String?;
+    final command = message.data['command'] as String?;
+    
+    if (_config.loggingEnabled) {
+      _logger.d('Terminal session update: $sessionId - ${message.type.name}');
+    }
+    
+    // Forward to message stream for UI consumption
+    _messageController?.add(message);
+  }
+
+  /// Handle analytics messages
+  void _handleAnalyticsMessage(WebSocketMessage message) {
+    final reportType = message.data['report_type'] as String?;
+    final metrics = message.data['metrics'] as Map<String, dynamic>?;
+    
+    if (_config.loggingEnabled) {
+      _logger.d('Analytics update: ${message.type.name} - $reportType');
+    }
+    
+    // Forward to message stream for UI consumption
+    _messageController?.add(message);
+  }
+
+  /// Handle context-aware execution messages
+  void _handleContextMessage(WebSocketMessage message) {
+    final sessionId = message.data['session_id'] as String?;
+    final context = message.data['context'] as Map<String, dynamic>?;
+    final memory = message.data['memory'] as List<dynamic>?;
+    
+    if (_config.loggingEnabled) {
+      _logger.d('Context update: $sessionId - ${message.type.name}');
+    }
+    
+    // Forward to message stream for UI consumption
+    _messageController?.add(message);
+  }
+
+  /// Handle web automation messages
+  void _handleWebAutomationMessage(WebSocketMessage message) {
+    final action = message.data['action'] as String?;
+    final status = message.data['status'] as String?;
+    final screenshot = message.data['screenshot'] as String?;
+    
+    if (_config.loggingEnabled) {
+      _logger.d('Web automation update: $action - $status');
+    }
+    
+    // Forward to message stream for UI consumption
+    _messageController?.add(message);
+  }
+
+  /// Handle mobile monitoring messages
+  void _handleMobileMessage(WebSocketMessage message) {
+    final status = message.data['status'] as String?;
+    final command = message.data['command'] as String?;
+    final notification = message.data['notification'] as String?;
+    
+    if (_config.loggingEnabled) {
+      _logger.d('Mobile update: ${message.type.name} - $status');
+    }
+    
+    // Forward to message stream for UI consumption
+    _messageController?.add(message);
+  }
+
+  /// Handle feedback messages
+  void _handleFeedbackMessage(WebSocketMessage message) {
+    final executionId = message.data['execution_id'] as String?;
+    final feedback = message.data['feedback'] as Map<String, dynamic>?;
+    final status = message.data['status'] as String?;
+    
+    if (_config.loggingEnabled) {
+      _logger.d('Feedback update: $executionId - $status');
+    }
+    
+    // Forward to message stream for UI consumption
+    _messageController?.add(message);
   }
 
   /// Handle connection errors
@@ -636,6 +1057,24 @@ class WebSocketService {
         }
       }
     });
+  }
+
+  /// Handle intelligent command response
+  void _handleIntelligentCommandResponse(WebSocketMessage message) {
+    _logger.i('Intelligent command response: ${message.data}');
+    _messageController?.add(message);
+  }
+
+  /// Handle intelligent command progress
+  void _handleIntelligentCommandProgress(WebSocketMessage message) {
+    _logger.i('Intelligent command progress: ${message.data}');
+    _messageController?.add(message);
+  }
+
+  /// Handle intelligent command step
+  void _handleIntelligentCommandStep(WebSocketMessage message) {
+    _logger.i('Intelligent command step: ${message.data}');
+    _messageController?.add(message);
   }
 
   /// Generate unique message ID

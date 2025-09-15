@@ -22,7 +22,7 @@ import os
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.jarvis_core import get_jarvis_core
-from features.settings import get_settings_manager
+from features.settings.simple_settings_manager import get_simple_settings_manager
 
 logger = logging.getLogger(__name__)
 
@@ -298,9 +298,24 @@ class JARVISUnifiedWindow:
         provider_row.pack(fill=tk.X)
         
         ttk.Label(provider_row, text="Current Provider:").pack(side=tk.LEFT)
-        self.ai_provider_var = tk.StringVar(value="Ollama")
+        
+        # Load current provider from settings
+        current_provider = "Ollama"
+        if self.settings_manager:
+            provider_name = self.settings_manager.get_setting('ai', 'default_provider', 'ollama')
+            provider_mapping = {
+                "gemini": "Google Gemini",
+                "google_gemini": "Google Gemini", 
+                "openai": "OpenAI",
+                "openrouter": "OpenRouter",
+                "anthropic": "Anthropic",
+                "ollama": "Ollama"
+            }
+            current_provider = provider_mapping.get(provider_name, "Ollama")
+        
+        self.ai_provider_var = tk.StringVar(value=current_provider)
         provider_combo = ttk.Combobox(provider_row, textvariable=self.ai_provider_var, 
-                                     values=["Ollama", "OpenAI", "Google Gemini", "OpenRouter"], 
+                                     values=["Ollama", "OpenAI", "Google Gemini", "OpenRouter", "Anthropic"], 
                                      state="readonly", width=20)
         provider_combo.pack(side=tk.LEFT, padx=(10, 10))
         
@@ -561,7 +576,7 @@ class JARVISUnifiedWindow:
         host_row = ttk.Frame(remote_frame)
         host_row.pack(fill=tk.X, pady=5)
         ttk.Label(host_row, text="Host:").pack(side=tk.LEFT)
-        self.host_var = tk.StringVar(value="100.109.80.8")
+        self.host_var = tk.StringVar(value="0.0.0.0")
         host_entry = ttk.Entry(host_row, textvariable=self.host_var, width=25)
         host_entry.pack(side=tk.LEFT, padx=(10, 0))
         
@@ -600,7 +615,7 @@ class JARVISUnifiedWindow:
         info_row = ttk.Frame(remote_frame)
         info_row.pack(fill=tk.X, pady=5)
         ttk.Label(info_row, text="Connection Info:").pack(side=tk.LEFT)
-        self.connection_info_var = tk.StringVar(value="ws://localhost:8765")
+        self.connection_info_var = tk.StringVar(value="ws://0.0.0.0:8765")
         info_entry = ttk.Entry(info_row, textvariable=self.connection_info_var, 
                               state="readonly", width=30)
         info_entry.pack(side=tk.LEFT, padx=(10, 0))
@@ -682,7 +697,7 @@ class JARVISUnifiedWindow:
             self.temperature_var.set(0.7)
             self.max_tokens_var.set(1000)
             
-            self.host_var.set("100.109.80.8")
+            self.host_var.set("0.0.0.0")
             self.port_var.set("8765")
             self.auth_enabled_var.set(False)
             self.api_token_var.set("")
@@ -800,7 +815,7 @@ class JARVISUnifiedWindow:
         """JARVIS'i başlat"""
         try:
             self.jarvis_core = get_jarvis_core()
-            self.settings_manager = get_settings_manager()
+            self.settings_manager = get_simple_settings_manager()
             
             # JARVIS'i initialize et
             def init_async():

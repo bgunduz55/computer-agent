@@ -26,7 +26,7 @@ from features.terminal_integration import get_terminal_manager, get_package_mana
 from features.remote_control import get_websocket_server, get_remote_controller
 from features.system_info import get_system_info_manager
 from features.application_control import get_application_manager
-from features.settings import get_settings_manager, SettingCategory
+from features.settings.simple_settings_manager import get_simple_settings_manager
 from features.command_processing import NLPEngine, CommandExecutor
 from plugins import get_plugin_manager
 from .performance_manager import get_performance_manager
@@ -119,7 +119,7 @@ class JARVISCore:
                 return False
             
             # Initialize settings manager
-            self.settings_manager = get_settings_manager()
+            self.settings_manager = get_simple_settings_manager()
             logger.info("Settings manager initialized")
             
             # Initialize speech manager
@@ -129,8 +129,8 @@ class JARVISCore:
                 return False
             logger.info("Speech manager initialized")
             
-            # Initialize AI manager
-            self.ai_manager = get_ai_manager()
+            # Initialize AI manager with settings
+            self.ai_manager = get_ai_manager(self.settings_manager)
             if not self.ai_manager.initialize():
                 logger.error("Failed to initialize AI manager")
                 return False
@@ -208,7 +208,7 @@ class JARVISCore:
             logger.info("Package manager initialized")
             
             # Initialize remote control if enabled
-            if self.settings_manager.remote.websocket_enabled:
+            if self.settings_manager.get_setting('remote', 'websocket_enabled', True):
                 self.websocket_server = get_websocket_server()
                 if not await self.websocket_server.initialize():
                     logger.error("Failed to initialize WebSocket server")
@@ -227,6 +227,8 @@ class JARVISCore:
             
             # Setup event handlers
             self._setup_event_handlers()
+            
+            # Settings change listener not needed for simple settings
             
             # Start background tasks
             await self._start_background_tasks()
@@ -264,15 +266,37 @@ class JARVISCore:
         # self.settings_manager.add_listener('setting_changed', self._on_setting_changed)
         pass
     
+    def _on_setting_changed(self, category: str, key: str, value: Any):
+        """Handle settings changes"""
+        try:
+            logger.info(f"Setting changed: {category}.{key} = {value}")
+            
+            # If AI settings changed, reinitialize AI manager
+            if category == "ai":
+                if key in ["default_provider", "openai_enabled", "gemini_enabled", 
+                          "openrouter_enabled", "anthropic_enabled", "ollama_enabled",
+                          "openai_api_key", "gemini_api_key", "openrouter_api_key", 
+                          "anthropic_api_key"]:
+                    logger.info("AI settings changed, reinitializing AI manager...")
+                    # Reinitialize AI manager with new settings
+                    if self.ai_manager:
+                        self.ai_manager.cleanup()
+                    self.ai_manager = get_ai_manager(self.settings_manager)
+                    self.ai_manager.initialize()
+                    logger.info("AI manager reinitialized with new settings")
+                    
+        except Exception as e:
+            logger.error(f"Error handling setting change: {e}")
+    
     async def _start_background_tasks(self):
         """Start background tasks"""
         # Performance monitoring
-        if self.settings_manager.performance.metrics_collection:
+        if self.settings_manager.get_setting('performance', 'metrics_collection', True):
             task = asyncio.create_task(self._performance_monitor())
             self.background_tasks.append(task)
         
         # Auto backup
-        if self.settings_manager.system.backup_enabled:
+        if self.settings_manager.get_setting('system', 'backup_enabled', False):
             task = asyncio.create_task(self._auto_backup())
             self.background_tasks.append(task)
         
@@ -290,11 +314,11 @@ class JARVISCore:
             logger.info("Starting JARVIS Core services...")
             
             # Start voice recognition if auto listen is enabled
-            if self.settings_manager.voice.auto_listen:
+            if self.settings_manager.get_setting('voice', 'auto_listen', False):
                 await self.start_listening()
             
             # Start WebSocket server if enabled
-            if self.websocket_server and self.settings_manager.remote.websocket_enabled:
+            if self.websocket_server and self.settings_manager.get_setting('remote', 'websocket_enabled', True):
                 await self.websocket_server.start()
                 logger.info("WebSocket server started")
             
@@ -606,7 +630,7 @@ class JARVISCore:
             "platform": self.platform.get_platform_name() if self.platform else "unknown",
             "is_listening": self.is_listening,
             "is_processing": self.is_processing,
-            "settings": self.settings_manager.get_settings_summary() if self.settings_manager else {}
+            "settings": self.settings_manager.get_all_settings() if self.settings_manager else {}
         }
     
     async def update_remote_settings(self, host: str = None, port: int = None, 
@@ -618,13 +642,20 @@ class JARVISCore:
                 return False
             
             # Update settings
-            updated = self.settings_manager.update_remote_settings(
-                host=host, port=port, enabled=enabled, **kwargs
-            )
+            if host:
+                self.settings_manager.set_setting('remote', 'websocket_host', host)
+            if port:
+                self.settings_manager.set_setting('remote', 'websocket_port', port)
+            if enabled is not None:
+                self.settings_manager.set_setting('remote', 'websocket_enabled', enabled)
+            updated = True
             
             if updated and self.websocket_server:
                 # Check if host or port changed
-                current_settings = self.settings_manager.get_remote_settings()
+                current_settings = {
+                    'websocket_host': self.settings_manager.get_setting('remote', 'websocket_host', '0.0.0.0'),
+                    'websocket_port': self.settings_manager.get_setting('remote', 'websocket_port', 8765)
+                }
                 if (host and host != current_settings.get('websocket_host')) or \
                    (port and port != current_settings.get('websocket_port')):
                     # Restart WebSocket server with new settings
@@ -642,13 +673,27 @@ class JARVISCore:
         """Get current remote control settings"""
         if not self.settings_manager:
             return {}
-        return self.settings_manager.get_remote_settings()
+        return {
+            'websocket_host': self.settings_manager.get_setting('remote', 'websocket_host', '0.0.0.0'),
+            'websocket_port': self.settings_manager.get_setting('remote', 'websocket_port', 8765),
+            'websocket_enabled': self.settings_manager.get_setting('remote', 'websocket_enabled', True)
+        }
     
     def validate_remote_settings(self) -> List[str]:
         """Validate remote control settings"""
         if not self.settings_manager:
             return ["Settings manager not initialized"]
-        return self.settings_manager.validate_remote_settings()
+        # Simple validation
+        errors = []
+        host = self.settings_manager.get_setting('remote', 'websocket_host', '0.0.0.0')
+        port = self.settings_manager.get_setting('remote', 'websocket_port', 8765)
+        
+        if not host:
+            errors.append("WebSocket host cannot be empty")
+        if not isinstance(port, int) or port < 1000 or port > 65535:
+            errors.append("WebSocket port must be between 1000 and 65535")
+            
+        return errors
     
     def _is_executable_command(self, text: str) -> bool:
         """Check if text contains executable commands"""
@@ -668,7 +713,7 @@ class JARVISCore:
         logger.info(f"Voice recognized: {command} (confidence: {confidence})")
         
         # Process command if confidence is high enough
-        if confidence >= self.settings_manager.voice.confidence_threshold:
+        if confidence >= self.settings_manager.get_setting('voice', 'confidence_threshold', 0.7):
             asyncio.create_task(self.process_voice_command(command))
         else:
             logger.warning(f"Low confidence voice recognition: {confidence}")
@@ -741,12 +786,12 @@ class JARVISCore:
             try:
                 # Monitor memory usage
                 memory_usage = self.platform.get_memory_usage()
-                if memory_usage > self.settings_manager.performance.max_memory_usage:
+                if memory_usage > self.settings_manager.get_setting('performance', 'max_memory_usage', 1000):
                     logger.warning(f"High memory usage: {memory_usage}MB")
                 
                 # Monitor CPU usage
                 cpu_usage = self.platform.get_cpu_usage()
-                if cpu_usage > self.settings_manager.performance.max_cpu_usage:
+                if cpu_usage > self.settings_manager.get_setting('performance', 'max_cpu_usage', 80):
                     logger.warning(f"High CPU usage: {cpu_usage}%")
                 
                 await asyncio.sleep(60)  # Check every minute
@@ -759,13 +804,14 @@ class JARVISCore:
         """Automatic backup task"""
         while self.is_running:
             try:
-                await asyncio.sleep(self.settings_manager.system.backup_interval * 3600)
+                await asyncio.sleep(self.settings_manager.get_setting('system', 'backup_interval', 24) * 3600)
                 
                 # Create backup
                 backup_path = Path("backups") / f"jarvis_backup_{int(time.time())}.json"
                 backup_path.parent.mkdir(exist_ok=True)
                 
-                if self.settings_manager.export_settings(str(backup_path)):
+                # Simple backup - just save current settings
+                if self.settings_manager.save_settings():
                     logger.info(f"Auto backup created: {backup_path}")
                 
             except Exception as e:
@@ -782,8 +828,8 @@ class JARVISCore:
                     "rag_system": self.rag_system is not None,
                     "terminal_manager": self.terminal_manager is not None,
                     "package_manager": self.package_manager is not None,
-                    "websocket_server": self.websocket_server is not None if self.settings_manager.remote.websocket_enabled else True,
-                    "remote_controller": self.remote_controller is not None if self.settings_manager.remote.websocket_enabled else True
+                    "websocket_server": self.websocket_server is not None if self.settings_manager.get_setting('remote', 'websocket_enabled', True) else True,
+                    "remote_controller": self.remote_controller is not None if self.settings_manager.get_setting('remote', 'websocket_enabled', True) else True
                 }
                 
                 unhealthy_services = [service for service, healthy in health_status.items() if not healthy]
