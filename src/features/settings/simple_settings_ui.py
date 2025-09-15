@@ -345,3 +345,5 @@ class SimpleSettingsUI:
             self.window.destroy()
             self.window = None
 
+
+

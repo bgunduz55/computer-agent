@@ -237,3 +237,5 @@ def get_simple_settings_manager() -> SimpleSettingsManager:
         _settings_manager = SimpleSettingsManager()
     return _settings_manager
 
+
+
