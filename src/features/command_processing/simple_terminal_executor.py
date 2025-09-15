@@ -93,8 +93,8 @@ class SimpleTerminalExecutor:
     async def _test_terminal_availability(self):
         """Test if terminal commands are available"""
         try:
-            # Test basic command execution
-            result = await self._execute_command("echo 'test'", 5)
+            # Test basic command execution without any output
+            result = await self._execute_command("echo. > nul", 5)
             if not result.success:
                 raise Exception(f"Terminal test failed: {result.error}")
         except Exception as e:

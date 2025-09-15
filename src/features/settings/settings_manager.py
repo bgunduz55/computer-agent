@@ -34,7 +34,7 @@ class VoiceSettings:
     """Voice recognition and TTS settings"""
     engine: str = "google"
     language: str = "en-US"
-    wake_word: str = "jarvis"
+    wake_word: str = "hey jarvis"
     listen_timeout: float = 5.0
     confidence_threshold: float = 0.7
     tts_engine: str = "edge"
@@ -50,7 +50,7 @@ class VoiceSettings:
 class AISettings:
     """AI provider settings"""
     default_provider: str = "ollama"
-    default_model: str = "gpt-3.5-turbo"
+    default_model: str = "deepseek-r1:8b"
     max_tokens: int = 1000
     temperature: float = 0.7
     top_p: float = 1.0
@@ -62,18 +62,42 @@ class AISettings:
     rag_enabled: bool = True
     rag_threshold: float = 0.8
     context_window: int = 4000
+    
+    # API Keys
+    openai_api_key: str = ""
+    gemini_api_key: str = ""
+    openrouter_api_key: str = ""
+    anthropic_api_key: str = ""
+    
+    # Provider Settings
+    openai_enabled: bool = False
+    gemini_enabled: bool = False
+    openrouter_enabled: bool = False
+    anthropic_enabled: bool = False
+    ollama_enabled: bool = True
+    
+    # Model Settings
+    openai_model: str = "gpt-4"
+    gemini_model: str = "gemini-pro"
+    openrouter_model: str = "openai/gpt-4"
+    anthropic_model: str = "claude-3-sonnet"
+    
+    # Cost Optimization
+    cost_optimization: bool = True
+    rate_limiting: bool = True
+    fallback_provider: str = "openai"
 
 @dataclass
 class SystemSettings:
-    """System control settings"""
+    """System configuration settings"""
     auto_start: bool = True
     minimize_to_tray: bool = True
     show_notifications: bool = True
     log_level: str = "INFO"
-    max_log_size: int = 100  # MB
+    max_log_size: int = 100
     log_retention_days: int = 30
     backup_enabled: bool = True
-    backup_interval: int = 24  # hours
+    backup_interval: int = 12
     max_backups: int = 10
     performance_monitoring: bool = True
     auto_update: bool = True
@@ -81,12 +105,12 @@ class SystemSettings:
 
 @dataclass
 class SecuritySettings:
-    """Security settings"""
+    """Security and authentication settings"""
     encryption_enabled: bool = True
     encryption_key: Optional[str] = None
-    session_timeout: int = 3600  # seconds
+    session_timeout: int = 3600
     max_failed_attempts: int = 5
-    lockout_duration: int = 300  # seconds
+    lockout_duration: int = 300
     require_authentication: bool = True
     biometric_auth: bool = False
     two_factor_auth: bool = False
@@ -95,10 +119,10 @@ class SecuritySettings:
 
 @dataclass
 class RemoteSettings:
-    """Remote control settings"""
+    """Remote control and WebSocket settings"""
     websocket_enabled: bool = True
     websocket_port: int = 8765
-    websocket_host: str = "100.109.80.8"
+    websocket_host: str = "0.0.0.0"
     websocket_ssl: bool = False
     websocket_cert: Optional[str] = None
     websocket_key: Optional[str] = None
@@ -107,15 +131,15 @@ class RemoteSettings:
     heartbeat_interval: int = 30
     allow_remote_control: bool = True
     require_authentication: bool = True
-    allowed_ips: List[str] = None
+    allowed_ips: Optional[List[str]] = None
 
 @dataclass
 class PerformanceSettings:
-    """Performance settings"""
-    max_memory_usage: int = 1024  # MB
-    max_cpu_usage: float = 80.0  # percentage
-    cache_size: int = 256  # MB
-    cache_ttl: int = 3600  # seconds
+    """Performance and resource management settings"""
+    max_memory_usage: int = 1024
+    max_cpu_usage: float = 80.0
+    cache_size: int = 256
+    cache_ttl: int = 3600
     thread_pool_size: int = 10
     async_workers: int = 5
     gc_threshold: int = 1000
@@ -134,12 +158,12 @@ class NotificationSettings:
     notification_sound: str = "default"
     quiet_hours_start: str = "22:00"
     quiet_hours_end: str = "08:00"
-    priority_levels: Dict[str, str] = None
+    priority_levels: Optional[Dict[str, int]] = None
 
 @dataclass
 class GeneralSettings:
     """General application settings"""
-    theme: str = "system"
+    theme: str = "dark"
     language: str = "en"
     timezone: str = "UTC"
     date_format: str = "%Y-%m-%d"
@@ -152,7 +176,7 @@ class GeneralSettings:
     telemetry: bool = False
 
 class SettingsManager:
-    """Comprehensive settings manager"""
+    """Comprehensive settings management system"""
     
     def __init__(self, config_dir: Optional[str] = None):
         self.config_dir = Path(config_dir) if config_dir else Path.home() / ".jarvis" / "config"
@@ -173,22 +197,13 @@ class SettingsManager:
         self.general = GeneralSettings()
         
         # Settings change listeners
-        self._listeners: Dict[str, List[callable]] = {}
-        self._lock = threading.RLock()
+        self.listeners: Dict[str, List[callable]] = {}
+        self._lock = threading.Lock()
         
         # Load settings
         self.load_settings()
         
-        # Start background tasks
-        self._start_background_tasks()
-    
-    def _start_background_tasks(self):
-        """Start background tasks for settings management"""
-        if self.system.backup_enabled:
-            threading.Thread(target=self._backup_task, daemon=True).start()
-        
-        if self.performance.metrics_collection:
-            threading.Thread(target=self._metrics_task, daemon=True).start()
+        logger.info("Settings manager initialized")
     
     def load_settings(self) -> None:
         """Load settings from file"""
@@ -219,21 +234,24 @@ class SettingsManager:
             else:
                 logger.info("No settings file found, using defaults")
                 self.save_settings()
-        
+                
         except Exception as e:
             logger.error(f"Failed to load settings: {e}")
-            self.save_settings()  # Save defaults
+            logger.info("Using default settings")
     
     def save_settings(self) -> None:
         """Save settings to file"""
         try:
             with self._lock:
-                # Create backup before saving
+                # Create backup if file exists
                 if self.settings_file.exists():
-                    self._create_backup()
+                    backup_file = self.backup_dir / f"settings_backup_{int(time.time())}.json"
+                    with open(self.settings_file, 'r', encoding='utf-8') as src:
+                        with open(backup_file, 'w', encoding='utf-8') as dst:
+                            dst.write(src.read())
                 
-                # Prepare settings data
-                data = {
+                # Save current settings
+                settings_data = {
                     'voice': asdict(self.voice),
                     'ai': asdict(self.ai),
                     'system': asdict(self.system),
@@ -245,46 +263,13 @@ class SettingsManager:
                     'last_updated': time.time()
                 }
                 
-                # Save to file
                 with open(self.settings_file, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=2, ensure_ascii=False)
+                    json.dump(settings_data, f, indent=2, ensure_ascii=False)
                 
                 logger.info("Settings saved successfully")
                 
-                # Notify listeners
-                self._notify_listeners('settings_saved', data)
-        
         except Exception as e:
             logger.error(f"Failed to save settings: {e}")
-    
-    def _create_backup(self) -> None:
-        """Create backup of current settings"""
-        try:
-            timestamp = int(time.time())
-            backup_file = self.backup_dir / f"settings_backup_{timestamp}.json"
-            
-            with open(self.settings_file, 'r', encoding='utf-8') as src:
-                with open(backup_file, 'w', encoding='utf-8') as dst:
-                    dst.write(src.read())
-            
-            # Clean old backups
-            self._cleanup_backups()
-            
-        except Exception as e:
-            logger.error(f"Failed to create backup: {e}")
-    
-    def _cleanup_backups(self) -> None:
-        """Clean up old backup files"""
-        try:
-            backup_files = list(self.backup_dir.glob("settings_backup_*.json"))
-            backup_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
-            
-            # Keep only the most recent backups
-            for backup_file in backup_files[self.system.max_backups:]:
-                backup_file.unlink()
-        
-        except Exception as e:
-            logger.error(f"Failed to cleanup backups: {e}")
     
     def get_setting(self, category: SettingCategory, key: str) -> Any:
         """Get a specific setting value"""
@@ -292,272 +277,98 @@ class SettingsManager:
             settings_obj = getattr(self, category.value)
             return getattr(settings_obj, key)
         except AttributeError:
-            logger.error(f"Setting not found: {category.value}.{key}")
+            logger.error(f"Setting {category.value}.{key} not found")
             return None
     
     def set_setting(self, category: SettingCategory, key: str, value: Any) -> bool:
         """Set a specific setting value"""
         try:
-            with self._lock:
-                settings_obj = getattr(self, category.value)
-                setattr(settings_obj, key, value)
-                
-                # Save settings
-                self.save_settings()
-                
-                # Notify listeners
-                self._notify_listeners('setting_changed', {
-                    'category': category.value,
-                    'key': key,
-                    'value': value
-                })
-                
-                return True
-        
-        except Exception as e:
-            logger.error(f"Failed to set setting {category.value}.{key}: {e}")
-            return False
-    
-    def get_category_settings(self, category: SettingCategory) -> Dict[str, Any]:
-        """Get all settings for a category"""
-        try:
             settings_obj = getattr(self, category.value)
-            return asdict(settings_obj)
+            setattr(settings_obj, key, value)
+            
+            # Notify listeners
+            self._notify_listeners(f"{category.value}.{key}", value)
+            
+            return True
         except AttributeError:
-            logger.error(f"Category not found: {category.value}")
-            return {}
-    
-    def set_category_settings(self, category: SettingCategory, settings: Dict[str, Any]) -> bool:
-        """Set all settings for a category"""
-        try:
-            with self._lock:
-                settings_obj = getattr(self, category.value)
-                
-                # Update settings
-                for key, value in settings.items():
-                    if hasattr(settings_obj, key):
-                        setattr(settings_obj, key, value)
-                
-                # Save settings
-                self.save_settings()
-                
-                # Notify listeners
-                self._notify_listeners('category_changed', {
-                    'category': category.value,
-                    'settings': settings
-                })
-                
-                return True
-        
-        except Exception as e:
-            logger.error(f"Failed to set category settings {category.value}: {e}")
+            logger.error(f"Setting {category.value}.{key} not found")
             return False
     
-    def reset_settings(self, category: Optional[SettingCategory] = None) -> bool:
-        """Reset settings to defaults"""
-        try:
-            with self._lock:
-                if category:
-                    # Reset specific category
-                    if category == SettingCategory.VOICE:
-                        self.voice = VoiceSettings()
-                    elif category == SettingCategory.AI:
-                        self.ai = AISettings()
-                    elif category == SettingCategory.SYSTEM:
-                        self.system = SystemSettings()
-                    elif category == SettingCategory.SECURITY:
-                        self.security = SecuritySettings()
-                    elif category == SettingCategory.REMOTE:
-                        self.remote = RemoteSettings()
-                    elif category == SettingCategory.PERFORMANCE:
-                        self.performance = PerformanceSettings()
-                    elif category == SettingCategory.NOTIFICATIONS:
-                        self.notifications = NotificationSettings()
-                    elif category == SettingCategory.GENERAL:
-                        self.general = GeneralSettings()
-                else:
-                    # Reset all settings
-                    self.voice = VoiceSettings()
-                    self.ai = AISettings()
-                    self.system = SystemSettings()
-                    self.security = SecuritySettings()
-                    self.remote = RemoteSettings()
-                    self.performance = PerformanceSettings()
-                    self.notifications = NotificationSettings()
-                    self.general = GeneralSettings()
-                
-                # Save settings
-                self.save_settings()
-                
-                # Notify listeners
-                self._notify_listeners('settings_reset', {'category': category.value if category else 'all'})
-                
-                return True
+    def update_setting(self, category: SettingCategory, key: str, value: Any) -> bool:
+        """Update a setting and save"""
+        if self.set_setting(category, key, value):
+            self.save_settings()
+            return True
+        return False
+    
+    def get_settings_summary(self) -> Dict[str, Any]:
+        """Get a summary of all settings"""
+        return {
+            'voice': asdict(self.voice),
+            'ai': asdict(self.ai),
+            'system': asdict(self.system),
+            'security': asdict(self.security),
+            'remote': asdict(self.remote),
+            'performance': asdict(self.performance),
+            'notifications': asdict(self.notifications),
+            'general': asdict(self.general)
+        }
+    
+    def add_listener(self, event: str, callback: callable) -> None:
+        """Add a settings change listener"""
+        if event not in self.listeners:
+            self.listeners[event] = []
+        self.listeners[event].append(callback)
+    
+    def remove_listener(self, event: str, callback: callable) -> None:
+        """Remove a settings change listener"""
+        if event in self.listeners:
+            try:
+                self.listeners[event].remove(callback)
+            except ValueError:
+                pass
+    
+    def _notify_listeners(self, event: str, value: Any) -> None:
+        """Notify listeners of a setting change"""
+        if event in self.listeners:
+            for callback in self.listeners[event]:
+                try:
+                    callback(event, value)
+                except Exception as e:
+                    logger.error(f"Error in settings listener: {e}")
+    
+    def reset_to_defaults(self) -> None:
+        """Reset all settings to defaults"""
+        self.voice = VoiceSettings()
+        self.ai = AISettings()
+        self.system = SystemSettings()
+        self.security = SecuritySettings()
+        self.remote = RemoteSettings()
+        self.performance = PerformanceSettings()
+        self.notifications = NotificationSettings()
+        self.general = GeneralSettings()
         
-        except Exception as e:
-            logger.error(f"Failed to reset settings: {e}")
-            return False
+        self.save_settings()
+        logger.info("Settings reset to defaults")
     
     def export_settings(self, file_path: str) -> bool:
-        """Export settings to file"""
+        """Export settings to a file"""
         try:
-            data = {
-                'voice': asdict(self.voice),
-                'ai': asdict(self.ai),
-                'system': asdict(self.system),
-                'security': asdict(self.security),
-                'remote': asdict(self.remote),
-                'performance': asdict(self.performance),
-                'notifications': asdict(self.notifications),
-                'general': asdict(self.general),
-                'exported_at': time.time()
-            }
-            
+            settings_data = self.get_settings_summary()
             with open(file_path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-            
-            logger.info(f"Settings exported to {file_path}")
+                json.dump(settings_data, f, indent=2, ensure_ascii=False)
             return True
-        
         except Exception as e:
             logger.error(f"Failed to export settings: {e}")
             return False
     
-    def update_remote_settings(self, host: str = None, port: int = None, 
-                              enabled: bool = None, ssl: bool = None,
-                              max_connections: int = None, 
-                              connection_timeout: int = None,
-                              heartbeat_interval: int = None,
-                              allow_remote_control: bool = None,
-                              require_authentication: bool = None,
-                              allowed_ips: List[str] = None) -> bool:
-        """Update remote control settings"""
-        try:
-            updated = False
-            
-            if host is not None:
-                self.remote.websocket_host = host
-                updated = True
-                logger.info(f"WebSocket host updated to: {host}")
-            
-            if port is not None:
-                self.remote.websocket_port = port
-                updated = True
-                logger.info(f"WebSocket port updated to: {port}")
-            
-            if enabled is not None:
-                self.remote.websocket_enabled = enabled
-                updated = True
-                logger.info(f"WebSocket enabled: {enabled}")
-            
-            if ssl is not None:
-                self.remote.websocket_ssl = ssl
-                updated = True
-                logger.info(f"WebSocket SSL: {ssl}")
-            
-            if max_connections is not None:
-                self.remote.max_connections = max_connections
-                updated = True
-                logger.info(f"Max connections updated to: {max_connections}")
-            
-            if connection_timeout is not None:
-                self.remote.connection_timeout = connection_timeout
-                updated = True
-                logger.info(f"Connection timeout updated to: {connection_timeout}")
-            
-            if heartbeat_interval is not None:
-                self.remote.heartbeat_interval = heartbeat_interval
-                updated = True
-                logger.info(f"Heartbeat interval updated to: {heartbeat_interval}")
-            
-            if allow_remote_control is not None:
-                self.remote.allow_remote_control = allow_remote_control
-                updated = True
-                logger.info(f"Allow remote control: {allow_remote_control}")
-            
-            if require_authentication is not None:
-                self.remote.require_authentication = require_authentication
-                updated = True
-                logger.info(f"Require authentication: {require_authentication}")
-            
-            if allowed_ips is not None:
-                self.remote.allowed_ips = allowed_ips
-                updated = True
-                logger.info(f"Allowed IPs updated: {allowed_ips}")
-            
-            if updated:
-                self.save_settings()
-                logger.info("Remote settings updated successfully")
-            
-            return updated
-        
-        except Exception as e:
-            logger.error(f"Failed to update remote settings: {e}")
-            return False
-    
-    def get_remote_settings(self) -> Dict[str, Any]:
-        """Get current remote settings"""
-        return asdict(self.remote)
-    
-    def validate_remote_settings(self) -> List[str]:
-        """Validate remote settings and return any errors"""
-        errors = []
-        
-        try:
-            # Validate host
-            if not self.remote.websocket_host:
-                errors.append("WebSocket host cannot be empty")
-            elif self.remote.websocket_host not in ["0.0.0.0", "localhost", "127.0.0.1", "100.109.80.8"]:
-                # Basic IP validation
-                parts = self.remote.websocket_host.split('.')
-                if len(parts) != 4:
-                    errors.append("Invalid IP address format")
-                else:
-                    for part in parts:
-                        if not part.isdigit() or not 0 <= int(part) <= 255:
-                            errors.append("Invalid IP address range")
-                            break
-            
-            # Validate port
-            if not 1 <= self.remote.websocket_port <= 65535:
-                errors.append("Port must be between 1 and 65535")
-            
-            # Validate max connections
-            if self.remote.max_connections < 1:
-                errors.append("Max connections must be at least 1")
-            
-            # Validate timeouts
-            if self.remote.connection_timeout < 1:
-                errors.append("Connection timeout must be at least 1 second")
-            
-            if self.remote.heartbeat_interval < 1:
-                errors.append("Heartbeat interval must be at least 1 second")
-            
-            # Validate allowed IPs
-            if self.remote.allowed_ips:
-                for ip in self.remote.allowed_ips:
-                    if ip not in ["0.0.0.0", "localhost", "127.0.0.1", "100.109.80.8"]:
-                        parts = ip.split('.')
-                        if len(parts) != 4:
-                            errors.append(f"Invalid allowed IP format: {ip}")
-                        else:
-                            for part in parts:
-                                if not part.isdigit() or not 0 <= int(part) <= 255:
-                                    errors.append(f"Invalid allowed IP range: {ip}")
-                                    break
-        
-        except Exception as e:
-            errors.append(f"Validation error: {e}")
-        
-        return errors
-    
     def import_settings(self, file_path: str) -> bool:
-        """Import settings from file"""
+        """Import settings from a file"""
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
-            # Validate and import settings
+            # Update settings
             if 'voice' in data:
                 self.voice = VoiceSettings(**data['voice'])
             if 'ai' in data:
@@ -575,115 +386,13 @@ class SettingsManager:
             if 'general' in data:
                 self.general = GeneralSettings(**data['general'])
             
-            # Save imported settings
             self.save_settings()
-            
-            logger.info(f"Settings imported from {file_path}")
             return True
-        
         except Exception as e:
             logger.error(f"Failed to import settings: {e}")
             return False
-    
-    def add_listener(self, event: str, callback: callable) -> None:
-        """Add event listener"""
-        if event not in self._listeners:
-            self._listeners[event] = []
-        self._listeners[event].append(callback)
-    
-    def remove_listener(self, event: str, callback: callable) -> None:
-        """Remove event listener"""
-        if event in self._listeners:
-            try:
-                self._listeners[event].remove(callback)
-            except ValueError:
-                pass
-    
-    def _notify_listeners(self, event: str, data: Any) -> None:
-        """Notify all listeners of an event"""
-        if event in self._listeners:
-            for callback in self._listeners[event]:
-                try:
-                    callback(event, data)
-                except Exception as e:
-                    logger.error(f"Error in settings listener: {e}")
-    
-    def _backup_task(self) -> None:
-        """Background task for automatic backups"""
-        while True:
-            try:
-                time.sleep(self.system.backup_interval * 3600)  # Convert hours to seconds
-                self._create_backup()
-            except Exception as e:
-                logger.error(f"Backup task error: {e}")
-    
-    def _metrics_task(self) -> None:
-        """Background task for performance metrics"""
-        while True:
-            try:
-                time.sleep(60)  # Collect metrics every minute
-                # Implement metrics collection here
-                pass
-            except Exception as e:
-                logger.error(f"Metrics task error: {e}")
-    
-    def get_settings(self) -> Dict[str, Any]:
-        """Get all settings"""
-        return {
-            'voice': asdict(self.voice),
-            'ai': asdict(self.ai),
-            'system': asdict(self.system),
-            'security': asdict(self.security),
-            'remote': asdict(self.remote),
-            'performance': asdict(self.performance),
-            'notifications': asdict(self.notifications),
-            'general': asdict(self.general)
-        }
-    
-    def get_settings_summary(self) -> Dict[str, Any]:
-        """Get summary of all settings"""
-        return {
-            'voice': {
-                'engine': self.voice.engine,
-                'language': self.voice.language,
-                'wake_word': self.voice.wake_word,
-                'auto_listen': self.voice.auto_listen
-            },
-            'ai': {
-                'default_provider': self.ai.default_provider,
-                'default_model': self.ai.default_model,
-                'rag_enabled': self.ai.rag_enabled
-            },
-            'system': {
-                'auto_start': self.system.auto_start,
-                'log_level': self.system.log_level,
-                'backup_enabled': self.system.backup_enabled
-            },
-            'security': {
-                'encryption_enabled': self.security.encryption_enabled,
-                'require_authentication': self.security.require_authentication
-            },
-            'remote': {
-                'websocket_enabled': self.remote.websocket_enabled,
-                'websocket_port': self.remote.websocket_port,
-                'allow_remote_control': self.remote.allow_remote_control
-            },
-            'performance': {
-                'max_memory_usage': self.performance.max_memory_usage,
-                'metrics_collection': self.performance.metrics_collection
-            },
-            'notifications': {
-                'enabled': self.notifications.enabled,
-                'sound_enabled': self.notifications.sound_enabled
-            },
-            'general': {
-                'theme': self.general.theme,
-                'language': self.general.language,
-                'first_run': self.general.first_run
-            }
-        }
 
-# Global settings manager instance
+# Global instance
 _settings_manager: Optional[SettingsManager] = None
 
 def get_settings_manager() -> SettingsManager:
@@ -697,4 +406,5 @@ def cleanup_settings_manager() -> None:
     """Cleanup global settings manager instance"""
     global _settings_manager
     if _settings_manager:
+        _settings_manager.save_settings()
         _settings_manager = None

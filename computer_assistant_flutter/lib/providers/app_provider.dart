@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
 import '../shared/websocket_protocol.dart';
@@ -48,6 +49,55 @@ final aiResponseProvider = StateProvider<AIResponse?>((ref) {
 
 // System Info Provider
 final systemInfoProvider = StateProvider<SystemInfo?>((ref) {
+  return null;
+});
+
+// Backend Integration Providers
+final latestProgressUpdateProvider = StateProvider<Map<String, dynamic>?>((ref) {
+  return null;
+});
+
+final latestIntelligentCommandResponseProvider = StateProvider<Map<String, dynamic>?>((ref) {
+  return null;
+});
+
+final terminalSessionsProvider = StateProvider<List<Map<String, dynamic>>>((ref) {
+  return [];
+});
+
+final terminalOutputsProvider = StateProvider<Map<String, List<Map<String, dynamic>>>>((ref) {
+  return {};
+});
+
+final latestRealTimeMetricsProvider = StateProvider<Map<String, dynamic>?>((ref) {
+  return null;
+});
+
+final latestAnalyticsReportProvider = StateProvider<Map<String, dynamic>?>((ref) {
+  return null;
+});
+
+final latestExecutionContextUpdateProvider = StateProvider<Map<String, dynamic>?>((ref) {
+  return null;
+});
+
+final latestErrorLogProvider = StateProvider<Map<String, dynamic>?>((ref) {
+  return null;
+});
+
+final latestLearningResponseProvider = StateProvider<Map<String, dynamic>?>((ref) {
+  return null;
+});
+
+final latestWebAutomationProgressProvider = StateProvider<Map<String, dynamic>?>((ref) {
+  return null;
+});
+
+final latestFeedbackResponseProvider = StateProvider<Map<String, dynamic>?>((ref) {
+  return null;
+});
+
+final latestScreenshotProvider = StateProvider<Uint8List?>((ref) {
   return null;
 });
 

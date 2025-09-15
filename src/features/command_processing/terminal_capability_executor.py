@@ -56,10 +56,11 @@ class TerminalCapabilityExecutor:
         self.allowed_commands = [
             'ls', 'cat', 'grep', 'find', 'ps', 'top', 'df', 'free', 'uname', 'whoami',
             'curl', 'wget', 'ssh', 'scp', 'rsync', 'tar', 'zip', 'unzip', 'git',
-            'docker', 'kubectl', 'aws', 'gcloud', 'terraform', 'echo', 'date', 'uptime'
+            'docker', 'kubectl', 'aws', 'gcloud', 'terraform', 'echo', 'date', 'uptime',
+            'start', 'explorer', 'notepad', 'calc', 'mspaint', 'cmd', 'powershell'
         ]
         self.max_command_length = 1000
-        self.require_confirmation = True
+        self.require_confirmation = False
     
     async def initialize(self) -> bool:
         """Initialize terminal executor"""
@@ -86,8 +87,8 @@ class TerminalCapabilityExecutor:
     async def _test_terminal_availability(self):
         """Test if terminal commands are available"""
         try:
-            # Test basic command execution
-            result = await self._execute_command("echo 'test'", timeout=5)
+            # Test basic command execution without any output
+            result = await self._execute_command("echo. > nul", timeout=5)
             if not result.success:
                 raise Exception("Terminal not available")
         except Exception as e:
@@ -240,6 +241,28 @@ class TerminalCapabilityExecutor:
             self.logger.error(f"Error applying special options: {e}")
             return command
     
+    def _preprocess_command_for_windows(self, command: str) -> str:
+        """Preprocess command for Windows compatibility"""
+        import platform
+        
+        if platform.system().lower() != "windows":
+            return command
+        
+        # Handle start command
+        if command.startswith("start "):
+            # Extract the URL or program from start command
+            parts = command.split(" ", 1)
+            if len(parts) > 1:
+                target = parts[1].strip('"\'')
+                # Use Windows start command properly
+                return f'start "" "{target}"'
+        
+        # Handle other Windows-specific commands
+        if command.startswith("explorer "):
+            return f'explorer "{command[9:].strip()}"'
+        
+        return command
+    
     async def _execute_command(
         self, 
         command: str, 
@@ -252,14 +275,16 @@ class TerminalCapabilityExecutor:
         start_time = time.time()
         
         try:
-            self.logger.info(f"Executing command: {command}")
+            # Preprocess command for Windows
+            processed_command = self._preprocess_command_for_windows(command)
+            self.logger.info(f"Executing command: {processed_command}")
             
             # Prepare environment
             env = environment or os.environ.copy()
             
             # Execute command
             process = await asyncio.create_subprocess_shell(
-                command,
+                processed_command,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=working_directory,
@@ -443,10 +468,10 @@ class TerminalCapabilityExecutor:
         try:
             # Allow certain safe usages
             safe_usages = {
-                ';': ['echo "test"; echo "done"'],
+                ';': ['echo "JARVIS Ready"; echo "done"'],
                 '|': ['ps aux | grep python', 'ls -la | head -10'],
-                '>': ['echo "test" > file.txt'],
-                '>>': ['echo "test" >> file.txt']
+                '>': ['echo "JARVIS Ready" > file.txt'],
+                '>>': ['echo "JARVIS Ready" >> file.txt']
             }
             
             if pattern in safe_usages:

@@ -62,7 +62,7 @@ class RemoteController:
         except Exception as e:
             self.logger.error(f"Failed to cleanup remote controller: {e}")
     
-    async def start_server(self, host: str = "100.109.80.8", port: int = 8765) -> None:
+    async def start_server(self, host: str = None, port: int = None) -> None:
         """Start the remote control server"""
         try:
             await self.websocket_server.start()

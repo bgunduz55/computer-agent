@@ -217,7 +217,7 @@ async def test_websocket_server():
     
     try:
         # Start server
-        server = get_websocket_server("localhost", 8766)
+        server = get_websocket_server("localhost", 8765)
         await server.start()
         
         print("  ✅ WebSocket server started successfully")

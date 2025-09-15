@@ -261,10 +261,10 @@ $text = Get-Content -Path "{temp_file}" -Encoding UTF8 -Raw
     async def _test_windows_text_input(self):
         """Test Windows text input capability"""
         try:
-            # Test PowerShell method
+            # Test PowerShell method without actual text input
             import subprocess
             result = subprocess.run(
-                ["powershell", "-Command", "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('test')"],
+                ["powershell", "-Command", "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('')"],
                 capture_output=True,
                 text=True,
                 timeout=5

@@ -1,0 +1,27 @@
+[
+  {
+    "metric_id": "b950902b-c8ec-4a70-bba5-8f2237a629ef",
+    "timestamp": 1757916446.089373,
+    "metric_type": "MetricType.EXECUTION_TIME",
+    "name": "command_execution_time",
+    "value": 2.3,
+    "unit": "seconds",
+    "labels": {
+      "command_type": "system",
+      "priority": "high"
+    },
+    "metadata": {
+      "component": "test_system"
+    }
+  },
+  {
+    "metric_id": "f38dece7-39d2-44af-a507-b0d566a4ce29",
+    "timestamp": 1757916446.0894065,
+    "metric_type": "MetricType.SUCCESS_RATE",
+    "name": "command_success_rate",
+    "value": 95.5,
+    "unit": "percentage",
+    "labels": {},
+    "metadata": {}
+  }
+]

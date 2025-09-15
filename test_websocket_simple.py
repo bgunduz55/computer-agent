@@ -8,7 +8,7 @@ async def test_websocket_simple():
     """Simple WebSocket server test"""
     
     # Create WebSocket server
-    server = WebSocketServer(host="localhost", port=8766)
+    server = WebSocketServer(host="localhost", port=8765)
     
     # Initialize server
     if not await server.initialize():
@@ -22,7 +22,7 @@ async def test_websocket_simple():
     # Start server in background
     asyncio.create_task(server.start())
     
-    print("✅ WebSocket server started on localhost:8766")
+    print("✅ WebSocket server started on localhost:8765")
     print("✅ Ready to accept Flutter client connections")
     print("✅ Voice commands will be processed through intelligent command system")
     
